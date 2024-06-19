@@ -112,6 +112,41 @@ pub trait EventIterator {
     fn size_hint(&self) -> (usize, Option<usize>) {
         (0, None)
     }
+
+    /// Takes a closure and creates an event iterator which calls that closure
+    /// on each event.
+    ///
+    /// `map()` transforms one event iterator into another, by means of its
+    /// argument: something that implements [`FnMut`].  It produces a new event
+    /// iterator which calls this closure on each event of the original event
+    /// iterator.
+    ///
+    /// If you are good at thinking in types, you can think of `map()` like
+    /// this: If you have an iterator that gives you elements of some type `A`,
+    /// and you want an iterator of some other type `B`, you can use `map()`,
+    /// passing a closure that takes an `A` and returns a `B`.
+    ///
+    /// `map()` is conceptually similar to an async for loop. However, as
+    /// `map()` is lazy, it is best used when you’re already working with other
+    /// event iterators.  If you’re doing some sort of looping for a side
+    /// effect, it’s considered more idiomatic to use for than `map()`.
+    fn map<B, F>(self, f: F) -> Map<Self, F>
+    where
+        Self: Sized + EventIterator,
+        F: for<'me> FnMut(Self::Event<'me>) -> B,
+    {
+        Map { ei: self, f }
+    }
+
+    // TODO
+    // filter
+    // filter_map
+    // enumerate
+    // fuse
+    // tear
+    // inspect
+    // take
+    // take_while
 }
 
 impl<T> EventIterator for T
@@ -158,6 +193,41 @@ where
     }
 }
 
+/// An event iterator that maps the events with f.
+///
+/// This `struct` is created by the [`EventIterator::map()`] method.  See its
+/// documentation for more.
+#[derive(Debug)]
+pub struct Map<I, F> {
+    ei: I,
+    f: F,
+}
+
+impl<B, I, F> EventIterator for Map<I, F>
+where
+    I: EventIterator + Unpin,
+    F: for<'me> FnMut(I::Event<'me>) -> B + 'static + Unpin,
+{
+    type Event<'me> = B where I: 'me;
+
+    fn poll_next<'a>(
+        self: Pin<&'a mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Self::Event<'a>>> {
+        let this = self.get_mut();
+        let Poll::Ready(item) = Pin::new(&mut this.ei).poll_next(cx) else {
+            return Poll::Pending
+        };
+        
+        Poll::Ready(item.map(&mut this.f))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.ei.size_hint()
+    }
+}
+
+
 /// An event iterator that was created from iterator
 ///
 /// This event iterator is created by the [`from_iter()`] function.  See it
@@ -193,7 +263,10 @@ where
     FromIter(iter.into_iter())
 }
 
-/// Trait for converting something into an event iterator
+/// Trait for converting something into a `'static` event iterator
+///
+/// This is automatically implemented for all `'static` types that implement
+/// [`EventIterator`].
 pub trait IntoEventIterator {
     /// The type of the event yielded by the event iterator
     type Event<'me>
@@ -218,3 +291,31 @@ where
         self
     }
 }
+
+// TODO
+// 
+//  /// Create an event iterator which never produces events.
+//  pub fn pending<E>() -> Pending<E>;
+//  /// Event iterator which is empty (always returns `Ready(None)`).
+//  pub fn empty<E>() -> Empty<E>;
+//  /// Create an event iterator that wraps a function returning [`Poll`].
+//  pub fn poll_fn<T, F>(f: F) -> PollFn<F>
+//  where
+//      F: FnMut(&mut Context<'_>) -> Poll<Option<T>>;
+//  /// Create an event iterator where each iteration calls the provided closure
+//  pub fn from_fn<E, F: Future<Output = Option<E>>, G: FnMut() -> F>(
+//      repeater: F,
+//  ) -> Repeat<G>;
+//  /// Create an event iterator, endlessly repeating the same future, using the
+//  /// output as the event.
+//  pub fn repeat<E, F: Future<Output = E> + Clone>(event: impl F)
+//      -> Repeat<F>;
+//  /// Create an event iterator, endlessly repeating a closure which provides
+//  /// the futures, using the output as the event.
+//  pub fn repeat_with<F: Future, G: FnMut() -> F>(repeater: G) -> Repeat<G>;
+//  /// Create an event iterator, which yields an event exactly once by polling
+//  /// the provided future.
+//  pub fn once<F: Future>(f: F)
+//  /// Create an event iterator that lazily generates a value exactly once by
+//  /// invoking the provided closure and polling the returned future.
+//  pub fn once_with<F: Future, G: FnOnce() -> F>(gen: G)

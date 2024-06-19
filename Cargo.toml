@@ -1,4 +1,19 @@
 [package]
 name = "event_iterator"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0 OR BSL-1.0 OR MIT"
+description = "Asynchronous lending iterator"
+repository = "https://github.com/ardaku/event_iterator"
+documentation = "https://docs.rs/event_iterator"
+homepage = "https://github.com/ardaku/event_iterator/releases"
+include = [
+    "/LICENSE_APACHE",
+    "/LICENSE_BOOST",
+    "/LICENSE_MIT",
+    "/README.md",
+    "/src/*",
+]
+keywords = ["streams", "async", "iterator", "lending", "gat"]
+categories = ["asynchronous", "no-std", "rust-patterns"]
+readme = "README.md"
