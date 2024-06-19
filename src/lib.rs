@@ -255,7 +255,7 @@ where
     }
 }
 
-/// Convert an iterator into an async iterator.
+/// Convert an iterator into an event iterator.
 pub fn from_iter<I>(iter: I) -> FromIter<<I as IntoIterator>::IntoIter>
 where
     I: IntoIterator,
