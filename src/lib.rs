@@ -18,18 +18,12 @@
     variant_size_differences
 )]
 
-#[cfg(feature = "alloc")]
-mod alloc;
-mod r#unsafe;
-
 use core::{
     future::Future,
-    ops::DerefMut,
+    ops::{Deref, DerefMut},
     pin::Pin,
     task::{Context, Poll},
 };
-
-use crate::r#unsafe::PinIntoDerefMut;
 
 /// An asynchronous lending iterator
 pub trait EventIterator {
@@ -121,31 +115,12 @@ pub trait EventIterator {
     }
 }
 
-impl<P> EventIterator for Pin<P>
+impl<T> EventIterator for T
 where
-    P: DerefMut,
-    P::Target: EventIterator,
+    T: DerefMut + Unpin,
+    T::Target: EventIterator + Unpin,
 {
-    type Event<'me> = <P::Target as EventIterator>::Event<'me> where P: 'me;
-
-    fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        // FIXME: when stable <https://github.com/rust-lang/rust/issues/86918>
-        <P::Target as EventIterator>::poll_next(
-            PinIntoDerefMut(self).into_deref_mut(),
-            cx,
-        )
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (**self).size_hint()
-    }
-}
-
-impl<S: ?Sized + EventIterator + Unpin> EventIterator for &mut S {
-    type Event<'me> = S::Event<'me> where Self: 'me;
+    type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me> where Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a mut Self>,
