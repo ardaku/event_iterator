@@ -1,2 +1,2 @@
-# event_iterator
-Asynchronous borrowing iterator
+# Event Iterator
+Asynchronous lending iterator
