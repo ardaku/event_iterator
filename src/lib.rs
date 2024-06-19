@@ -1,8 +1,7 @@
 //! Asynchronous lending iterator
 
 #![no_std]
-#![forbid(missing_docs)]
-#![deny(unsafe_code)]
+#![forbid(missing_docs, unsafe_code)]
 #![warn(
     anonymous_parameters,
     missing_copy_implementations,
@@ -156,5 +155,66 @@ where
         };
 
         ei.poll_next(cx)
+    }
+}
+
+/// An event iterator that was created from iterator
+///
+/// This event iterator is created by the [`from_iter()`] function.  See it
+/// documentation for more.
+#[derive(Debug)]
+pub struct FromIter<I>(I);
+
+impl<I> Unpin for FromIter<I> {}
+
+impl<I> EventIterator for FromIter<I>
+where
+    I: Iterator,
+{
+    type Event<'me> = <I as Iterator>::Item where I: 'me;
+
+    fn poll_next<'a>(
+        mut self: Pin<&'a mut Self>,
+        _cx: &mut Context<'_>,
+    ) -> Poll<Option<Self::Event<'a>>> {
+        Poll::Ready(self.0.next())
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+
+/// Convert an iterator into an async iterator.
+pub fn from_iter<I>(iter: I) -> FromIter<<I as IntoIterator>::IntoIter>
+where
+    I: IntoIterator,
+{
+    FromIter(iter.into_iter())
+}
+
+/// Trait for converting something into an event iterator
+pub trait IntoEventIterator {
+    /// The type of the event yielded by the event iterator
+    type Event<'me>
+    where
+        Self: 'me;
+    /// The type of the resulting event iterator
+    type IntoEventIter: for<'me> EventIterator<Event<'me> = Self::Event<'me>>
+        + 'static;
+
+    /// Convert `self` into an event iterator.
+    fn into_event_iter(self) -> Self::IntoEventIter;
+}
+
+impl<I> IntoEventIterator for I
+where
+    I: EventIterator + 'static,
+{
+    type Event<'me> = I::Event<'me> where Self: 'me;
+    type IntoEventIter = Self;
+
+    fn into_event_iter(self) -> Self::IntoEventIter {
+        self
     }
 }
