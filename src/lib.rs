@@ -18,6 +18,8 @@
     variant_size_differences
 )]
 
+#[cfg(feature = "alloc")]
+mod alloc;
 mod r#unsafe;
 
 use core::{
