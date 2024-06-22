@@ -16,7 +16,7 @@ pub struct Stdin {
     sender: Channel<Option<String>>,
     recver: Cell<Option<Channel<Option<String>>>>,
     buffer: Cell<Option<String>>,
-    send: Cell<Option<Pin<Box<dyn Future<Output = ()>>>>>,
+    send: Cell<Option<Pin<Box<dyn Future<Output = ()> + Send>>>>,
 }
 
 impl EventIterator for Stdin {
