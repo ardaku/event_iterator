@@ -4,23 +4,25 @@ use crate::EventIterator;
 ///
 /// This is automatically implemented for all types that implement
 /// [`EventIterator`].
-pub trait IntoEventIterator<'a> where Self: 'a {
+pub trait IntoEventIterator<'a, 'b>
+where
+    'b: 'a,
+{
     /// The type of the event yielded by the event iterator
-    type Event<'me>
-    where
-        Self: 'me + 'a;
+    type Event: 'a;
     /// The type of the resulting event iterator
-    type IntoEventIter: EventIterator<Event<'a> = Self::Event<'a>>;
+    type IntoEventIter: EventIterator<Event<'a> = Self::Event> + 'b;
 
     /// Convert `self` into an event iterator.
     fn into_event_iter(self) -> Self::IntoEventIter;
 }
 
-impl<'a, I> IntoEventIterator<'a> for I
+impl<'a, 'b, I> IntoEventIterator<'a, 'b> for I
 where
-    I: EventIterator + 'a,
+    I: EventIterator + 'b,
+    'b: 'a,
 {
-    type Event<'me> = I::Event<'me> where Self: 'me;
+    type Event = I::Event<'a> where <I as EventIterator>::Event<'a>: 'a;
     type IntoEventIter = Self;
 
     fn into_event_iter(self) -> Self::IntoEventIter {
