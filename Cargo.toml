@@ -17,3 +17,13 @@ include = [
 keywords = ["streams", "async", "iterator", "lending", "gat"]
 categories = ["asynchronous", "no-std", "rust-patterns"]
 readme = "README.md"
+
+[dev-dependencies.async_main]
+version = "0.4"
+features = ["pasts"]
+
+[dev-dependencies.pasts]
+version = "0.14"
+
+[dev-dependencies.whisk]
+version = "0.13"

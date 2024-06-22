@@ -1,4 +1,13 @@
 //! Asynchronous lending iterator
+//!
+//! # Getting Started
+//!
+//! The following exaple shows how to implement and use an event iterator to
+//! print to stdout.
+//!
+//! ```rust
+#![doc = include_str!("../examples/stdout.rs")]
+//! ```
 
 #![no_std]
 #![forbid(missing_docs, unsafe_code)]
@@ -227,8 +236,7 @@ where
     }
 }
 
-
-/// An event iterator that was created from iterator
+/// An event iterator that was created from an iterator
 ///
 /// This event iterator is created by the [`from_iter()`] function.  See it
 /// documentation for more.
@@ -293,7 +301,7 @@ where
 }
 
 // TODO
-// 
+//
 //  /// Create an event iterator which never produces events.
 //  pub fn pending<E>() -> Pending<E>;
 //  /// Event iterator which is empty (always returns `Ready(None)`).

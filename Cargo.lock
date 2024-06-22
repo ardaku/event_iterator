@@ -3,5 +3,38 @@
 version = 3
 
 [[package]]
+name = "async_main"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9229c055d66cba2b97b10381b7a1c56db6bdd3234daa4bee21260e96081460a1"
+dependencies = [
+ "async_main_macro",
+ "pasts",
+]
+
+[[package]]
+name = "async_main_macro"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c61a19d4ab2db23de9a52d0085948e6647c0abd46cf0361de57e6716b65c785"
+
+[[package]]
 name = "event_iterator"
 version = "0.1.0"
+dependencies = [
+ "async_main",
+ "pasts",
+ "whisk",
+]
+
+[[package]]
+name = "pasts"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efcd36303871fb977a47dabc9af736c75c492bb32a92fa26262b2741531e97ce"
+
+[[package]]
+name = "whisk"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09c50b72a1db0b7c540669604d763db75abe736c348f9b05d3e816bd28ed4f3a"
