@@ -3,7 +3,14 @@
 //! # Getting Started
 //!
 //! The following exaple shows how to implement and use an event iterator to
-//! print to stdout.
+//! print to stdout:
+//!
+//! ```console
+//! Hello, world!
+//! Hello, again!
+//! ```
+//!
+//! ## Code
 //!
 //! ```rust
 #![doc = include_str!("../examples/stdout.rs")]
@@ -27,13 +34,20 @@
 )]
 
 use core::{
+    cell::Cell,
+    fmt,
     future::Future,
-    ops::{Deref, DerefMut},
+    ops::Deref,
     pin::Pin,
     task::{Context, Poll},
 };
 
 /// An asynchronous lending iterator
+///
+/// Unlike iterators, the type must only be modified through interior mutability
+/// during iteration.  This is to get around the limitation of not being able to
+/// use [`Pin::as_mut()`] in some situations, due to the fact that events take
+/// the lifetime of `Self`, resulting in insufficient lifetimes.
 pub trait EventIterator {
     /// The type of the events being iterated over
     type Event<'me>
@@ -69,7 +83,7 @@ pub trait EventIterator {
     /// use of unsafe functions, or the like), regardless of the event
     /// iterator’s state.
     fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
+        self: Pin<&'a Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>>;
 
@@ -77,7 +91,7 @@ pub trait EventIterator {
     ///
     /// This is more flexible than [`next_unpinned()`](Self::next_unpinned), but
     /// often more verbose than needed.
-    fn next<'a>(self: Pin<&'a mut Self>) -> Next<'a, Self> {
+    fn next<'a>(self: Pin<&'a Self>) -> Next<'a, Self> {
         Next(Some(self))
     }
 
@@ -85,7 +99,7 @@ pub trait EventIterator {
     ///
     /// This is less flexible than [`next()`](Self::next), but avoids the need
     /// to handle pinning yourself.
-    fn next_unpinned(&mut self) -> Next<'_, Self>
+    fn next_unpinned(&self) -> Next<'_, Self>
     where
         Self: Unpin,
     {
@@ -144,7 +158,10 @@ pub trait EventIterator {
         Self: Sized + EventIterator,
         F: for<'me> FnMut(Self::Event<'me>) -> B,
     {
-        Map { ei: self, f }
+        Map {
+            ei: self,
+            f: Cell::new(f.into()),
+        }
     }
 
     // TODO
@@ -160,16 +177,17 @@ pub trait EventIterator {
 
 impl<T> EventIterator for T
 where
-    T: DerefMut + Unpin,
+    T: Deref,
     T::Target: EventIterator + Unpin,
 {
-    type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me> where Self: 'me;
+    type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me>
+        where Self: 'me;
 
     fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
+        self: Pin<&'a Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
-        Pin::new(&mut **self.get_mut()).poll_next(cx)
+        Pin::new(&**self.get_ref()).poll_next(cx)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -180,25 +198,28 @@ where
 /// Future for the [`next()`](EventIterator::next) and
 /// [`next_unpinned()`](EventIterator::next_unpinned) methods
 #[derive(Debug)]
-pub struct Next<'a, Ei>(Option<Pin<&'a mut Ei>>)
+pub struct Next<'a, Ei>(Option<Pin<&'a Ei>>)
 where
     Ei: ?Sized;
 
 impl<'a, Ei> Future for Next<'a, Ei>
 where
-    Ei: ?Sized + EventIterator,
+    Ei: EventIterator + ?Sized,
 {
     type Output = Option<Ei::Event<'a>>;
 
-    fn poll(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Self::Output> {
-        let Some(ei) = self.0.take() else {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.get_mut();
+        let Some(ei) = this.0.as_ref() else {
             return Poll::Ready(None);
         };
+        let output = ei.poll_next(cx);
 
-        ei.poll_next(cx)
+        if output.is_ready() {
+            this.0 = None;
+        }
+
+        output
     }
 }
 
@@ -206,10 +227,20 @@ where
 ///
 /// This `struct` is created by the [`EventIterator::map()`] method.  See its
 /// documentation for more.
-#[derive(Debug)]
 pub struct Map<I, F> {
     ei: I,
-    f: F,
+    f: Cell<Option<F>>,
+}
+
+impl<I, F> fmt::Debug for Map<I, F>
+where
+    I: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Map")
+            .field("ei", &self.ei)
+            .finish_non_exhaustive()
+    }
 }
 
 impl<B, I, F> EventIterator for Map<I, F>
@@ -220,15 +251,20 @@ where
     type Event<'me> = B where I: 'me;
 
     fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
+        self: Pin<&'a Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.get_mut();
-        let Poll::Ready(item) = Pin::new(&mut this.ei).poll_next(cx) else {
-            return Poll::Pending
+        let this = self.get_ref();
+        let Poll::Ready(item) = Pin::new(&this.ei).poll_next(cx) else {
+            return Poll::Pending;
         };
-        
-        Poll::Ready(item.map(&mut this.f))
+
+        Poll::Ready(this.f.take().and_then(|mut f| {
+            let event = item.map(&mut f);
+
+            this.f.set(Some(f));
+            event
+        }))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -240,8 +276,20 @@ where
 ///
 /// This event iterator is created by the [`from_iter()`] function.  See it
 /// documentation for more.
-#[derive(Debug)]
-pub struct FromIter<I>(I);
+pub struct FromIter<I>(Cell<Option<I>>);
+
+impl<I> fmt::Debug for FromIter<I>
+where
+    I: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let iter = self.0.take();
+        let result = f.debug_tuple("FromIter").field(&iter).finish();
+
+        self.0.set(iter);
+        result
+    }
+}
 
 impl<I> Unpin for FromIter<I> {}
 
@@ -252,14 +300,27 @@ where
     type Event<'me> = <I as Iterator>::Item where I: 'me;
 
     fn poll_next<'a>(
-        mut self: Pin<&'a mut Self>,
+        self: Pin<&'a Self>,
         _cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
-        Poll::Ready(self.0.next())
+        Poll::Ready(self.0.take().and_then(|mut iter| {
+            let item = iter.next()?;
+
+            self.0.set(Some(iter));
+            Some(item)
+        }))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.0.size_hint()
+        self.0
+            .take()
+            .and_then(|iter| {
+                let size = iter.size_hint();
+
+                self.0.set(Some(iter));
+                Some(size)
+            })
+            .unwrap_or((0, Some(0)))
     }
 }
 
@@ -268,7 +329,7 @@ pub fn from_iter<I>(iter: I) -> FromIter<<I as IntoIterator>::IntoIter>
 where
     I: IntoIterator,
 {
-    FromIter(iter.into_iter())
+    FromIter(Cell::new(iter.into_iter().into()))
 }
 
 /// Trait for converting something into a `'static` event iterator
