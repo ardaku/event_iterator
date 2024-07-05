@@ -4,26 +4,30 @@ use crate::EventIterator;
 ///
 /// This is automatically implemented for all types that implement
 /// [`EventIterator`].
-pub trait IntoEventIterator<'a, 'b>
-where
-    'b: 'a,
-{
+pub trait IntoEventIterator<'me>: 'me {
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/into_ei.rs")]
+    /// ```
     /// The type of the event yielded by the event iterator
-    type Event: 'a;
+    type Event<'a>
+    where
+        'me: 'a;
     /// The type of the resulting event iterator
-    type IntoEventIter: EventIterator<Event<'a> = Self::Event> + 'b;
+    type IntoEventIter: EventIterator<Event<'me> = Self::Event<'me>>;
 
     /// Convert `self` into an event iterator.
     fn into_event_iter(self) -> Self::IntoEventIter;
 }
 
-impl<'a, 'b, I> IntoEventIterator<'a, 'b> for I
+impl<'me, I> IntoEventIterator<'me> for I
 where
-    I: EventIterator + 'b,
-    'b: 'a,
+    I: EventIterator + 'me,
 {
-    type Event = I::Event<'a> where <I as EventIterator>::Event<'a>: 'a;
-    type IntoEventIter = Self;
+    type Event<'a> = I::Event<'a> where 'me: 'a;
+    type IntoEventIter = I;
 
     fn into_event_iter(self) -> Self::IntoEventIter {
         self
