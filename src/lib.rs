@@ -35,14 +35,12 @@
 
 mod event_iter;
 mod from_iter;
-mod into_event_iter;
 mod map;
 mod next;
 
 pub use self::{
     event_iter::EventIterator,
     from_iter::{from_iter, FromIter},
-    into_event_iter::IntoEventIterator,
     map::Map,
     next::Next,
 };
