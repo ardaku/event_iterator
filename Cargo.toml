@@ -17,6 +17,7 @@ include = [
 keywords = ["streams", "async", "iterator", "lending", "gat"]
 categories = ["asynchronous", "no-std", "rust-patterns"]
 readme = "README.md"
+rust-version = "1.70"
 
 [dev-dependencies.async_main]
 version = "0.4"

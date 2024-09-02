@@ -1,4 +1,6 @@
-//! Asynchronous lending iterator
+//! #### Asynchronous lending iterator
+//!
+//! A modified `AsyncIterator` or `Stream` using GATs to enable lending.
 //!
 //! # Getting Started
 //!
