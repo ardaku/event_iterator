@@ -20,7 +20,7 @@ checksum = "2c61a19d4ab2db23de9a52d0085948e6647c0abd46cf0361de57e6716b65c785"
 
 [[package]]
 name = "event_iterator"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async_main",
  "pasts",
