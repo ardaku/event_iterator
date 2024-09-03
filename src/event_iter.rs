@@ -61,6 +61,12 @@ pub trait EventIterator {
     ///
     /// This is more flexible than [`next_unpinned()`](Self::next_unpinned), but
     /// often more verbose than needed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/next.rs")]
+    /// ```
     fn next<'a>(self: Pin<&'a Self>) -> Next<'a, Self>
     where
         Self: Sized,
@@ -72,6 +78,12 @@ pub trait EventIterator {
     ///
     /// This is less flexible than [`next()`](Self::next), but avoids the need
     /// to handle pinning yourself.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/next_unpinned.rs")]
+    /// ```
     fn next_unpinned(&self) -> Next<'_, Self>
     where
         Self: Sized + Unpin,
@@ -105,6 +117,12 @@ pub trait EventIterator {
     ///
     /// The default implementation returns `(0, None)` which is correct for any
     /// event iterator.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/size_hint.rs")]
+    /// ```
     fn size_hint(&self) -> (usize, Option<usize>) {
         (0, None)
     }
@@ -122,10 +140,26 @@ pub trait EventIterator {
     /// and you want an iterator of some other type `B`, you can use `map()`,
     /// passing a closure that takes an `A` and returns a `B`.
     ///
-    /// `map()` is conceptually similar to an async for loop. However, as
-    /// `map()` is lazy, it is best used when you’re already working with other
-    /// event iterators.  If you’re doing some sort of looping for a side
-    /// effect, it’s considered more idiomatic to use for than `map()`.
+    /// `map()` is conceptually similar to a `while let Some(_) = _.await` loop.
+    /// However, as `map()` is lazy, it is best used when you’re already working
+    /// with other event iterators.  If you’re doing some sort of looping for a
+    /// side effect, it’s considered more idiomatic to use
+    /// `while let Some(_) = _.await` than `map()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/map.rs")]
+    /// ```
+    /// 
+    /// Output:
+    /// ```console
+    /// uwu
+    /// uwuuwu
+    /// uwuuwuuwu
+    /// uwuuwuuwuuwu
+    /// uwuuwuuwuuwuuwu
+    /// ```
     fn map<B, F>(self, f: F) -> Map<Self, F>
     where
         Self: Sized,

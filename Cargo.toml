@@ -12,6 +12,7 @@ include = [
     "/LICENSE_BOOST",
     "/LICENSE_MIT",
     "/README.md",
+    "/examples/*",
     "/src/*",
 ]
 keywords = ["streams", "async", "iterator", "lending", "gat"]

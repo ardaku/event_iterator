@@ -60,6 +60,21 @@ where
 }
 
 /// Convert an iterator into an event iterator.
+///
+/// # Example
+///
+/// ```rust
+#[doc = include_str!("../examples/from_iter.rs")]
+/// ```
+/// 
+/// Output:
+/// ```console
+/// 1
+/// 2
+/// 3
+/// 4
+/// 5
+/// ```
 pub fn from_iter<I>(iter: I) -> FromIter<<I as IntoIterator>::IntoIter>
 where
     I: IntoIterator,

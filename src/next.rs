@@ -6,8 +6,11 @@ use core::{
 
 use crate::EventIterator;
 
-/// Future for the [`next()`](EventIterator::next) and
-/// [`next_unpinned()`](EventIterator::next_unpinned) methods
+/// Future to get the next event in an [`EventIterator`].
+///
+/// This `struct` is created by the [`next()`](EventIterator::next) and
+/// [`next_unpinned()`](EventIterator::next_unpinned) methods.  See their
+/// documentation for more.
 #[derive(Debug)]
 pub struct Next<'a, Ei>(Option<Pin<&'a Ei>>);
 
