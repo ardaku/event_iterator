@@ -1,7 +1,7 @@
 use event_iterator::{AsEventIterator, EventIterator};
 
-async fn as_event_iter<'a>(aei: &'a dyn AsEventIterator<'a, Event = i32>) {
-    let ei = aei.as_event_iter2(); //AsEventIterator::as_event_iter(aei);
+async fn as_event_iter<'a>(ei: &'a dyn AsEventIterator<'a, Event = i32>) {
+    let ei = ei.as_event_iter();
 
     while let Some(i) = ei.next_unpinned().await {
         println!("{i}");
