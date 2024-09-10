@@ -42,7 +42,7 @@ mod map;
 mod next;
 
 pub use self::{
-    as_event_iter::{AsEventIterator, AsEventIter},
+    as_event_iter::{AsEventIter, AsEventIterator},
     event_iter::EventIterator,
     from_iter::{from_iter, FromIter},
     map::Map,
