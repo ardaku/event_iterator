@@ -35,12 +35,14 @@
     variant_size_differences
 )]
 
+mod as_event_iter;
 mod event_iter;
 mod from_iter;
 mod map;
 mod next;
 
 pub use self::{
+    as_event_iter::AsEventIterator,
     event_iter::EventIterator,
     from_iter::{from_iter, FromIter},
     map::Map,

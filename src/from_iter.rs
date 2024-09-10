@@ -9,7 +9,7 @@ use crate::EventIterator;
 
 /// An event iterator that was created from an iterator
 ///
-/// This event iterator is created by the [`from_iter()`] function.  See it
+/// This event iterator is created by the [`from_iter()`] function.  See its
 /// documentation for more.
 pub struct FromIter<I>(Cell<Option<I>>);
 
@@ -49,11 +49,11 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0
             .take()
-            .and_then(|iter| {
+            .map(|iter| {
                 let size = iter.size_hint();
 
                 self.0.set(Some(iter));
-                Some(size)
+                size
             })
             .unwrap_or((0, Some(0)))
     }

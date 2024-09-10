@@ -181,7 +181,7 @@ pub trait EventIterator {
 
 impl<T> EventIterator for T
 where
-    T: Deref,
+    T: Deref + ?Sized,
     T::Target: EventIterator + Unpin,
 {
     type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me>
