@@ -46,6 +46,7 @@ mod inspect;
 mod map;
 mod next;
 mod take;
+mod take_while;
 mod tear;
 
 pub use self::{
@@ -60,6 +61,7 @@ pub use self::{
     map::Map,
     next::Next,
     take::Take,
+    take_while::TakeWhile,
     tear::Tear,
 };
 

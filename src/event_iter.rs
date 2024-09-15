@@ -5,7 +5,8 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, Tear,
+    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, TakeWhile,
+    Tear,
 };
 
 /// Asynchronous lending iterator
@@ -326,7 +327,6 @@ pub trait EventIterator {
     /// least `n` events, otherwise it contains all of the (fewer than `n`)
     /// events of the original event iterator.
     ///
-    ///
     /// # Example
     ///
     /// ```rust
@@ -339,8 +339,27 @@ pub trait EventIterator {
         Take::new(self, n)
     }
 
-    // TODO
-    // take_while
+    /// Create an event iterator that yields elements based on a predicate.
+    ///
+    /// `take_while()` takes a closure as an argument.  It will call this
+    /// closure on each event of the event iterator, and yield events while it
+    /// returns `true`.
+    ///
+    /// After `false` is returned, `take_while()`’s job is over, and the rest of
+    /// the events are ignored.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/take_while.rs")]
+    /// ```
+    fn take_while<P>(self, predicate: P) -> TakeWhile<Self, P>
+    where
+        Self: Sized,
+        P: for<'me> FnMut(&Self::Event<'me>) -> bool,
+    {
+        TakeWhile::new(self, predicate)
+    }
 }
 
 impl<T> EventIterator for T
