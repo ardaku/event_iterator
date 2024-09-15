@@ -44,6 +44,8 @@ mod from_iter;
 mod inspect;
 mod map;
 mod next;
+mod tear;
+mod fuse;
 
 pub use self::{
     as_event_iter::{AsEventIter, AsEventIterator},
@@ -52,9 +54,11 @@ pub use self::{
     filter::Filter,
     filter_map::FilterMap,
     from_iter::{from_iter, FromIter},
+    fuse::Fuse,
     inspect::Inspect,
     map::Map,
     next::Next,
+    tear::Tear,
 };
 
 // TODO

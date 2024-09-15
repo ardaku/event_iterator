@@ -7,8 +7,7 @@ use core::{
 
 use crate::EventIterator;
 
-/// An event iterator that filters the events of an event iterator with a
-/// predicate
+/// Event iterator that filters the events of an event iterator with a predicate
 ///
 /// This `struct` is created by the [`EventIterator::filter()`] method.  See its
 /// documentation for more.

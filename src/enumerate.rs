@@ -7,7 +7,7 @@ use core::{
 
 use crate::EventIterator;
 
-/// An event iterator that yields the current count and event during iteration
+/// Event iterator that yields the current count and event during iteration
 ///
 /// This `struct` is created by the [`EventIterator::enumerate()`] method.  See
 /// its documentation for more.

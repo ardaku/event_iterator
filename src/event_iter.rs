@@ -4,9 +4,9 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{Enumerate, Filter, FilterMap, Inspect, Map, Next};
+use crate::{Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Tear};
 
-/// An asynchronous lending iterator
+/// Asynchronous lending iterator
 ///
 /// Unlike iterators, the type must only be modified through interior mutability
 /// during iteration.  This is to get around the limitation of not being able to
@@ -153,7 +153,6 @@ pub trait EventIterator {
     /// ```
     /// 
     /// Output:
-    ///
     /// ```console
     /// uwu
     /// uwuuwu
@@ -225,7 +224,6 @@ pub trait EventIterator {
     /// ```
     /// 
     /// Output:
-    ///
     /// ```console
     /// uwu
     /// uwuuwu
@@ -273,9 +271,51 @@ pub trait EventIterator {
         Enumerate::new(self)
     }
 
+    /// Create an event iterator which ends after the first `Ready(None)`.
+    ///
+    /// After an event iterator returns `Ready(None)`, future calls may or may
+    /// not yield `Ready(Some(E))` again.  `fuse()` adapts an event iterator,
+    /// ensuring that after a `Ready(None)` is given, it will always return
+    /// `Ready(None)` forever.
+    ///
+    /// If you want to return `Pending` forever instead, use
+    /// [`tear()`](EventIterator::tear())
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/fuse.rs")]
+    /// ```
+    fn fuse(self) -> Fuse<Self>
+    where
+        Self: Sized,
+    {
+        Fuse::new(self)
+    }
+
+    /// Create an event iterator which ends after the first `Ready(None)`.
+    ///
+    /// After an event iterator returns `Ready(None)`, future calls may or may
+    /// not yield `Ready(Some(E))` again.  `tear()` adapts an event iterator,
+    /// ensuring that after a `Ready(None)` is given, it will always return
+    /// `Pending` forever.
+    ///
+    /// If you want to return `Ready(None)` forever instead, use
+    /// [`fuse()`](EventIterator::fuse())
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/tear.rs")]
+    /// ```
+    fn tear(self) -> Tear<Self>
+    where
+        Self: Sized,
+    {
+        Tear::new(self)
+    }
+
     // TODO
-    // fuse
-    // tear
     // take
     // take_while
 }

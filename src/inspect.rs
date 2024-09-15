@@ -7,7 +7,7 @@ use core::{
 
 use crate::EventIterator;
 
-/// An event iterator that maps the events with a closure
+/// Event iterator that calls a closure with a reference to each event
 ///
 /// This `struct` is created by the [`EventIterator::map()`] method.  See its
 /// documentation for more.

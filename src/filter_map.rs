@@ -7,7 +7,7 @@ use core::{
 
 use crate::EventIterator;
 
-/// An event iterator that uses a closure to both filter and map events
+/// Event iterator that uses a closure to both filter and map events
 ///
 /// This `struct` is created by the [`EventIterator::filter_map()`] method.  See
 /// its documentation for more.

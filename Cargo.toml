@@ -24,6 +24,9 @@ rust-version = "1.70"
 version = "0.4"
 features = ["pasts"]
 
+[dev-dependencies.futures]
+version = "0.3"
+
 [dev-dependencies.pasts]
 version = "0.14"
 
