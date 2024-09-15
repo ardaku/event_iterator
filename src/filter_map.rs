@@ -29,7 +29,7 @@ where
     I: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Filter")
+        f.debug_struct("FilterMap")
             .field("ei", &self.ei)
             .finish_non_exhaustive()
     }

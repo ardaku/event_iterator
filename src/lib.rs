@@ -36,6 +36,7 @@
 )]
 
 mod as_event_iter;
+mod enumerate;
 mod event_iter;
 mod filter;
 mod filter_map;
@@ -45,6 +46,7 @@ mod next;
 
 pub use self::{
     as_event_iter::{AsEventIter, AsEventIterator},
+    enumerate::Enumerate,
     event_iter::EventIterator,
     filter::Filter,
     filter_map::FilterMap,

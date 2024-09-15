@@ -47,12 +47,12 @@ where
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
         let this = self.get_ref();
-        let Poll::Ready(item) = Pin::new(&this.ei).poll_next(cx) else {
+        let Poll::Ready(event) = Pin::new(&this.ei).poll_next(cx) else {
             return Poll::Pending;
         };
 
         Poll::Ready(this.f.take().and_then(|mut f| {
-            let event = item.map(&mut f);
+            let event = event.map(&mut f);
 
             this.f.set(Some(f));
             event

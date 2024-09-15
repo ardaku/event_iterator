@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{Filter, FilterMap, Map, Next};
+use crate::{Enumerate, Filter, FilterMap, Map, Next};
 
 /// An asynchronous lending iterator
 ///
@@ -211,11 +211,42 @@ pub trait EventIterator {
         FilterMap::new(self, f)
     }
 
+    /// Create an event iterator which gives the current iteration count as well
+    /// as the next event.
+    ///
+    /// The event iterator returned yields pairs `(i, e)`, where `i` is the
+    /// current index of iteration and `e` is the event returned by the event
+    /// iterator.
+    ///
+    /// `enumerate()` keeps its count as a `usize`.
+    ///
+    /// # Overflow Behavior
+    ///
+    /// The method does no guarding against overflows, so enumerating more than
+    /// [`usize::MAX`] elements either produces the wrong result or panics.  If
+    /// debug assertions are enabled, a panic is guaranteed.
+    ///
+    /// # Panics
+    ///
+    /// The returned iterator might panic if the to-be-returned index would
+    /// overflow a `usize`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/enumerate.rs")]
+    /// ```
+    fn enumerate(self) -> Enumerate<Self>
+    where
+        Self: Sized,
+    {
+        Enumerate::new(self)
+    }
+
     // TODO
-    // enumerate
+    // inspect
     // fuse
     // tear
-    // inspect
     // take
     // take_while
 }
