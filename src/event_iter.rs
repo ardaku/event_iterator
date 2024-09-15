@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{Map, Next, Filter};
+use crate::{Filter, FilterMap, Map, Next};
 
 /// An asynchronous lending iterator
 ///
@@ -188,8 +188,30 @@ pub trait EventIterator {
         Filter::new(self, predicate)
     }
 
+    /// Create an event iterator that both filters and maps.
+    ///
+    /// The returned event iterator yields only the events for which the
+    /// supplied closure returns `Some(event)`.
+    ///
+    /// `filter_map()` can be used to make chains of [`filter()`](Self::filter)
+    /// and [`map()`](Self::map) more concise.  The example below shows how a
+    /// `map().filter().map()` can be shortened to a single call to
+    /// `filter_map()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/filter_map.rs")]
+    /// ```
+    fn filter_map<B, F>(self, f: F) -> FilterMap<Self, F>
+    where
+        Self: Sized,
+        F: for<'me> FnMut(Self::Event<'me>) -> Option<B>,
+    {
+        FilterMap::new(self, f)
+    }
+
     // TODO
-    // filter_map
     // enumerate
     // fuse
     // tear

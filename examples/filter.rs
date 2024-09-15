@@ -8,7 +8,7 @@ async fn main(_spawner: async_main::LocalSpawner) {
     while let Some(event) = ei.next_unpinned().await {
         events.push(event);
     }
-        
+
     println!("{events:?}");
     assert_eq!(events, [2, 3, 4, 5]);
 }

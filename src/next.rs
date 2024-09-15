@@ -6,7 +6,7 @@ use core::{
 
 use crate::EventIterator;
 
-/// Future to get the next event in an [`EventIterator`].
+/// Future to get the next event in an [`EventIterator`]
 ///
 /// This `struct` is created by the [`next()`](EventIterator::next) and
 /// [`next_unpinned()`](EventIterator::next_unpinned) methods.  See their

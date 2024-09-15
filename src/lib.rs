@@ -37,18 +37,20 @@
 
 mod as_event_iter;
 mod event_iter;
+mod filter;
+mod filter_map;
 mod from_iter;
 mod map;
 mod next;
-mod filter;
 
 pub use self::{
     as_event_iter::{AsEventIter, AsEventIterator},
     event_iter::EventIterator,
+    filter::Filter,
+    filter_map::FilterMap,
     from_iter::{from_iter, FromIter},
     map::Map,
     next::Next,
-    filter::Filter,
 };
 
 // TODO

@@ -7,25 +7,24 @@ use core::{
 
 use crate::EventIterator;
 
-/// An event iterator that filters the events of an event iterator with a
-/// predicate
+/// An event iterator that uses a closure to both filter and map events
 ///
-/// This `struct` is created by the [`EventIterator::filter()`] method.  See its
-/// documentation for more.
-pub struct Filter<I, P> {
+/// This `struct` is created by the [`EventIterator::filter_map()`] method.  See
+/// its documentation for more.
+pub struct FilterMap<I, F> {
     ei: I,
-    p: Cell<Option<P>>,
+    f: Cell<Option<F>>,
 }
 
-impl<I, P> Filter<I, P> {
-    pub(crate) fn new(ei: I, p: P) -> Self {
-        let p = Cell::new(Some(p));
+impl<I, F> FilterMap<I, F> {
+    pub(crate) fn new(ei: I, f: F) -> Self {
+        let f = Cell::new(Some(f));
 
-        Self { ei, p }
+        Self { ei, f }
     }
 }
 
-impl<I, P> fmt::Debug for Filter<I, P>
+impl<I, F> fmt::Debug for FilterMap<I, F>
 where
     I: fmt::Debug,
 {
@@ -36,12 +35,12 @@ where
     }
 }
 
-impl<I, P> EventIterator for Filter<I, P>
+impl<I, F, B> EventIterator for FilterMap<I, F>
 where
     I: EventIterator + Unpin,
-    P: for<'me> FnMut(&I::Event<'me>) -> bool + 'static + Unpin,
+    F: for<'me> FnMut(I::Event<'me>) -> Option<B> + 'static + Unpin,
 {
-    type Event<'me> = I::Event<'me> where I: 'me;
+    type Event<'me> = B where I: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,
@@ -56,16 +55,16 @@ where
             let Some(event) = event else {
                 break Poll::Ready(None);
             };
-            let Some(mut predicate) = this.p.take() else {
+            let Some(mut f) = this.f.take() else {
                 break Poll::Ready(None);
             };
-            let should_yield = predicate(&event);
+            let event = f(event);
 
-            this.p.set(Some(predicate));
+            this.f.set(Some(f));
 
-            if should_yield {
-                break Poll::Ready(Some(event));
-            }
+            let Some(event) = event else { continue };
+
+            break Poll::Ready(Some(event));
         }
     }
 
