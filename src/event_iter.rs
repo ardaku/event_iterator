@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{Enumerate, Filter, FilterMap, Map, Next};
+use crate::{Enumerate, Filter, FilterMap, Inspect, Map, Next};
 
 /// An asynchronous lending iterator
 ///
@@ -153,6 +153,7 @@ pub trait EventIterator {
     /// ```
     /// 
     /// Output:
+    ///
     /// ```console
     /// uwu
     /// uwuuwu
@@ -211,6 +212,35 @@ pub trait EventIterator {
         FilterMap::new(self, f)
     }
 
+    /// Do something with each event of an event iterator, passing the value on.
+    ///
+    /// It’s more common for `inspect()` to be used as a debugging tool than to
+    /// exist in your final code, but applications may find it useful in certain
+    /// situations when errors need to be logged before being discarded.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/inspect.rs")]
+    /// ```
+    /// 
+    /// Output:
+    ///
+    /// ```console
+    /// uwu
+    /// uwuuwu
+    /// uwuuwuuwu
+    /// uwuuwuuwuuwu
+    /// uwuuwuuwuuwuuwu
+    /// ```
+    fn inspect<F>(self, f: F) -> Inspect<Self, F>
+    where
+        Self: Sized,
+        F: for<'me> FnMut(&Self::Event<'me>),
+    {
+        Inspect::new(self, f)
+    }
+
     /// Create an event iterator which gives the current iteration count as well
     /// as the next event.
     ///
@@ -218,7 +248,7 @@ pub trait EventIterator {
     /// current index of iteration and `e` is the event returned by the event
     /// iterator.
     ///
-    /// `enumerate()` keeps its count as a `usize`.
+    /// `enumerate()` keeps its count as a [`usize`].
     ///
     /// # Overflow Behavior
     ///
@@ -228,8 +258,8 @@ pub trait EventIterator {
     ///
     /// # Panics
     ///
-    /// The returned iterator might panic if the to-be-returned index would
-    /// overflow a `usize`.
+    /// The returned event iterator might panic if the to-be-returned index
+    /// would overflow a [`usize`].
     ///
     /// # Example
     ///
@@ -244,7 +274,6 @@ pub trait EventIterator {
     }
 
     // TODO
-    // inspect
     // fuse
     // tear
     // take

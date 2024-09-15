@@ -41,6 +41,7 @@ mod event_iter;
 mod filter;
 mod filter_map;
 mod from_iter;
+mod inspect;
 mod map;
 mod next;
 
@@ -51,6 +52,7 @@ pub use self::{
     filter::Filter,
     filter_map::FilterMap,
     from_iter::{from_iter, FromIter},
+    inspect::Inspect,
     map::Map,
     next::Next,
 };
