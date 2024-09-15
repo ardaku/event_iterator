@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{Map, Next};
+use crate::{Map, Next, Filter};
 
 /// An asynchronous lending iterator
 ///
@@ -127,8 +127,8 @@ pub trait EventIterator {
         (0, None)
     }
 
-    /// Takes a closure and creates an event iterator which calls that closure
-    /// on each event.
+    /// Take a closure and create an event iterator which calls that closure on
+    /// each event.
     ///
     /// `map()` transforms one event iterator into another, by means of its
     /// argument: something that implements [`FnMut`].  It produces a new event
@@ -168,8 +168,27 @@ pub trait EventIterator {
         Map::new(self, f)
     }
 
+    /// Create an event iterator which uses a closure to determine if an event
+    /// should be yielded.
+    ///
+    /// Given an event the closure must return `true` or `false`.  The returned
+    /// event iterator will yield only the events for which the closure returns
+    /// `true`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/filter.rs")]
+    /// ```
+    fn filter<P>(self, predicate: P) -> Filter<Self, P>
+    where
+        Self: Sized,
+        P: for<'me> FnMut(&Self::Event<'me>) -> bool,
+    {
+        Filter::new(self, predicate)
+    }
+
     // TODO
-    // filter
     // filter_map
     // enumerate
     // fuse
