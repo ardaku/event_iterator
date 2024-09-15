@@ -41,11 +41,12 @@ mod event_iter;
 mod filter;
 mod filter_map;
 mod from_iter;
+mod fuse;
 mod inspect;
 mod map;
 mod next;
+mod take;
 mod tear;
-mod fuse;
 
 pub use self::{
     as_event_iter::{AsEventIter, AsEventIterator},
@@ -58,6 +59,7 @@ pub use self::{
     inspect::Inspect,
     map::Map,
     next::Next,
+    take::Take,
     tear::Tear,
 };
 

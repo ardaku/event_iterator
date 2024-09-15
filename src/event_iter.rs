@@ -4,7 +4,9 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Tear};
+use crate::{
+    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, Tear,
+};
 
 /// Asynchronous lending iterator
 ///
@@ -315,8 +317,29 @@ pub trait EventIterator {
         Tear::new(self)
     }
 
+    /// Create an event iterator that yields the first `n` events, or fewer if
+    /// the underlying event iterator ends sooner.
+    ///
+    /// `take(n)` yields events until `n` events are yielded or the end of the
+    /// event iterator is reached (whichever happens first).  The returned event
+    /// iterator is a prefix of length `n` if the original iterator contains at
+    /// least `n` events, otherwise it contains all of the (fewer than `n`)
+    /// events of the original event iterator.
+    ///
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/take.rs")]
+    /// ```
+    fn take(self, n: usize) -> Take<Self>
+    where
+        Self: Sized,
+    {
+        Take::new(self, n)
+    }
+
     // TODO
-    // take
     // take_while
 }
 

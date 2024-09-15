@@ -17,7 +17,10 @@ pub struct Tear<I> {
     ended: Cell<bool>,
 }
 
-impl<I> fmt::Debug for Tear<I> where I: fmt::Debug {
+impl<I> fmt::Debug for Tear<I>
+where
+    I: fmt::Debug,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Tear")
             .field("ei", &self.ei)
@@ -45,7 +48,7 @@ where
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
         let this = self.get_ref();
-        
+
         if this.ended.get() {
             return Poll::Pending;
         }

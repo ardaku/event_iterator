@@ -10,14 +10,17 @@ use crate::EventIterator;
 /// Event iterator that yields `Ready(None)` forever after yielding
 /// `Ready(None)` once
 ///
-/// This `struct` is created by the [`EventIterator::enumerate()`] method.  See
-/// its documentation for more.
+/// This `struct` is created by the [`EventIterator::fuse()`] method.  See its
+/// documentation for more.
 pub struct Fuse<I> {
     ei: I,
     ended: Cell<bool>,
 }
 
-impl<I> fmt::Debug for Fuse<I> where I: fmt::Debug {
+impl<I> fmt::Debug for Fuse<I>
+where
+    I: fmt::Debug,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Fuse")
             .field("ei", &self.ei)
@@ -45,7 +48,7 @@ where
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
         let this = self.get_ref();
-        
+
         if this.ended.get() {
             return Poll::Ready(None);
         }
