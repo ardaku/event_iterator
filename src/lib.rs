@@ -20,6 +20,11 @@
 
 #![no_std]
 #![forbid(missing_docs, unsafe_code)]
+#![doc(
+    html_logo_url = "https://ardaku.github.io/mm/logo.svg",
+    html_favicon_url = "https://ardaku.github.io/mm/icon.svg",
+    html_root_url = "https://docs.rs/event_iterator"
+)]
 #![warn(
     anonymous_parameters,
     missing_copy_implementations,

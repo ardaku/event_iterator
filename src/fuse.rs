@@ -7,8 +7,9 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator that yields `Ready(None)` forever after yielding
-/// `Ready(None)` once
+/// Event iterator that returns `Ready(None)` forever after it's finished
+///
+/// An event iterator is finished after it first returns `Ready(None)`.
 ///
 /// This `struct` is created by the [`EventIterator::fuse()`] method.  See its
 /// documentation for more.

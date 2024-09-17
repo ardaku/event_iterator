@@ -7,7 +7,7 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator that only accepts elements while predicate returns `true`.
+/// Event iterator that only yields elements while a predicate returns `true`
 ///
 /// This `struct` is created by the [`EventIterator::take_while()`] method.  See
 /// its documentation for more.

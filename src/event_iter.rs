@@ -278,7 +278,7 @@ pub trait EventIterator {
     ///
     /// After an event iterator returns `Ready(None)`, future calls may or may
     /// not yield `Ready(Some(E))` again.  `fuse()` adapts an event iterator,
-    /// ensuring that after a `Ready(None)` is given, it will always return
+    /// ensuring that after a `Ready(None)` is returned, it will always return
     /// `Ready(None)` forever.
     ///
     /// If you want to return `Pending` forever instead, use
@@ -300,7 +300,7 @@ pub trait EventIterator {
     ///
     /// After an event iterator returns `Ready(None)`, future calls may or may
     /// not yield `Ready(Some(E))` again.  `tear()` adapts an event iterator,
-    /// ensuring that after a `Ready(None)` is given, it will always return
+    /// ensuring that after a `Ready(None)` is returned, it will always return
     /// `Pending` forever.
     ///
     /// If you want to return `Ready(None)` forever instead, use
