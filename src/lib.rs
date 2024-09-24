@@ -2,6 +2,8 @@
 //!
 //! A modified `AsyncIterator` or `Stream` using GATs to enable lending.
 //!
+//! The primary trait provided by this crate is [`EventIterator`].
+//!
 //! # Getting Started
 //!
 //! The following example shows how to implement and use an event iterator to
@@ -51,6 +53,7 @@ mod fuse;
 mod inspect;
 mod map;
 mod next;
+mod once;
 mod pending;
 mod take;
 mod take_while;
@@ -68,6 +71,7 @@ pub use self::{
     inspect::Inspect,
     map::Map,
     next::Next,
+    once::{once, Once},
     pending::{pending, Pending},
     take::Take,
     take_while::TakeWhile,
