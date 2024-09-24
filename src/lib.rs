@@ -41,6 +41,7 @@
 )]
 
 mod as_event_iter;
+mod empty;
 mod enumerate;
 mod event_iter;
 mod filter;
@@ -57,6 +58,7 @@ mod tear;
 
 pub use self::{
     as_event_iter::{AsEventIter, AsEventIterator},
+    empty::{empty, Empty},
     enumerate::Enumerate,
     event_iter::EventIterator,
     filter::Filter,
@@ -74,8 +76,6 @@ pub use self::{
 
 // TODO
 //
-//  /// Event iterator which is empty (always returns `Ready(None)`).
-//  pub fn empty<E>() -> Empty<E>;
 //  /// Create an event iterator that wraps a function returning [`Poll`].
 //  pub fn poll_fn<T, F>(f: F) -> PollFn<F>
 //  where
