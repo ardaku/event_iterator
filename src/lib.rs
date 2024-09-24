@@ -50,6 +50,7 @@ mod fuse;
 mod inspect;
 mod map;
 mod next;
+mod pending;
 mod take;
 mod take_while;
 mod tear;
@@ -65,6 +66,7 @@ pub use self::{
     inspect::Inspect,
     map::Map,
     next::Next,
+    pending::{pending, Pending},
     take::Take,
     take_while::TakeWhile,
     tear::Tear,
@@ -72,8 +74,6 @@ pub use self::{
 
 // TODO
 //
-//  /// Create an event iterator which never produces events.
-//  pub fn pending<E>() -> Pending<E>;
 //  /// Event iterator which is empty (always returns `Ready(None)`).
 //  pub fn empty<E>() -> Empty<E>;
 //  /// Create an event iterator that wraps a function returning [`Poll`].
