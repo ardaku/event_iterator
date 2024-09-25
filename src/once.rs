@@ -1,52 +1,39 @@
 use core::{
     cell::Cell,
     fmt,
-    future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 
 use crate::EventIterator;
 
-/// Event iterator that yields a single event by polling a future
+/// Event iterator that yields a single event
 ///
 /// This event iterator is created by the [`once()`] function.  See its
 /// documentation for more.
-pub struct Once<F>(Cell<Option<F>>);
+pub struct Once<E>(Cell<Option<E>>);
 
-impl<F> fmt::Debug for Once<F>
+impl<E> fmt::Debug for Once<E>
 where
-    F: fmt::Debug,
+    E: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let future = self.0.take();
-        let result = f.debug_tuple("Once").field(&future).finish();
+        let event = self.0.take();
+        let result = f.debug_tuple("Once").field(&event).finish();
 
-        self.0.set(future);
+        self.0.set(event);
         result
     }
 }
 
-impl<F> EventIterator for Once<F>
-where
-    F: Future + Unpin,
-{
-    type Event<'me> = F::Output where Self: 'me;
+impl<E> EventIterator for Once<E> {
+    type Event<'me> = E where Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
+        _cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
-        let Some(mut future) = self.0.take() else {
-            return Poll::Ready(None);
-        };
-
-        if let Poll::Ready(output) = Pin::new(&mut future).poll(cx) {
-            return Poll::Ready(Some(output));
-        }
-
-        self.0.set(Some(future));
-        Poll::Pending
+        Poll::Ready(self.0.take())
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -59,7 +46,7 @@ where
     }
 }
 
-/// Create an event iterator that yields a single event by polling a future.
+/// Create an event iterator that yields a single event.
 ///
 /// This event iterator can be considered [fused](EventIterator::fuse).
 ///
@@ -68,9 +55,6 @@ where
 /// ```rust
 #[doc = include_str!("../examples/once.rs")]
 /// ```
-pub fn once<F>(f: F) -> Once<F>
-where
-    F: Future,
-{
-    Once(Cell::new(Some(f)))
+pub fn once<E>(event: E) -> Once<E> {
+    Once(Cell::new(Some(event)))
 }

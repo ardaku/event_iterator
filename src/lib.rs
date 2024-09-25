@@ -55,6 +55,7 @@ mod inspect;
 mod map;
 mod next;
 mod once;
+mod once_with;
 mod pending;
 mod poll_fn;
 mod repeat_with;
@@ -76,6 +77,7 @@ pub use self::{
     map::Map,
     next::Next,
     once::{once, Once},
+    once_with::{once_with, OnceWith},
     pending::{pending, Pending},
     poll_fn::{poll_fn, PollFn},
     repeat_with::{repeat_with, RepeatWith},
