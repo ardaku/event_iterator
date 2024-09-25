@@ -1,3 +1,5 @@
+use std::future;
+
 use event_iterator::EventIterator;
 
 #[async_main::async_main]
@@ -6,7 +8,7 @@ async fn main(_spawner: async_main::LocalSpawner) {
     let ei = event_iterator::repeat_with(move || {
         // Increment our count. This is why we started at zero.
         count += 1;
-        Box::pin(async move { count })
+        future::ready(count)
     });
     let ei = ei.take(5);
 

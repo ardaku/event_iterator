@@ -58,6 +58,7 @@ mod once;
 mod once_with;
 mod pending;
 mod poll_fn;
+mod ready;
 mod repeat;
 mod repeat_with;
 mod take;
@@ -81,19 +82,10 @@ pub use self::{
     once_with::{once_with, OnceWith},
     pending::{pending, Pending},
     poll_fn::{poll_fn, PollFn},
+    ready::{ready, Ready},
     repeat::{repeat, Repeat},
     repeat_with::{repeat_with, RepeatWith},
     take::Take,
     take_while::TakeWhile,
     tear::Tear,
 };
-
-// TODO
-//
-//  /// Create an event iterator, endlessly repeating the same future, using the
-//  /// output as the event.
-//  pub fn repeat<E, F: Future<Output = E> + Clone>(event: impl F)
-//      -> Repeat<F>;
-//  /// Create an event iterator, endlessly repeating a closure which provides
-//  /// the futures, using the output as the event.
-//  pub fn repeat_with<F: Future, G: FnMut() -> F>(repeater: G) -> Repeat<G>;

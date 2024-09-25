@@ -22,7 +22,8 @@ where
 }
 
 impl<E> EventIterator for Repeat<E>
-where E: Clone
+where
+    E: Clone,
 {
     type Event<'me> = E where Self: 'me;
 
@@ -39,8 +40,6 @@ where E: Clone
 }
 
 /// Create an event iterator that endlessly repeats a single event.
-///
-/// This event iterator can be considered [fused](EventIterator::fuse).
 ///
 /// # Example
 ///
