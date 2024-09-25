@@ -58,6 +58,7 @@ mod once;
 mod once_with;
 mod pending;
 mod poll_fn;
+mod repeat;
 mod repeat_with;
 mod take;
 mod take_while;
@@ -80,6 +81,7 @@ pub use self::{
     once_with::{once_with, OnceWith},
     pending::{pending, Pending},
     poll_fn::{poll_fn, PollFn},
+    repeat::{repeat, Repeat},
     repeat_with::{repeat_with, RepeatWith},
     take::Take,
     take_while::TakeWhile,
