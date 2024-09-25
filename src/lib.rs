@@ -55,6 +55,7 @@ mod map;
 mod next;
 mod once;
 mod pending;
+mod poll_fn;
 mod take;
 mod take_while;
 mod tear;
@@ -73,6 +74,7 @@ pub use self::{
     next::Next,
     once::{once, Once},
     pending::{pending, Pending},
+    poll_fn::{poll_fn, PollFn},
     take::Take,
     take_while::TakeWhile,
     tear::Tear,
@@ -80,10 +82,6 @@ pub use self::{
 
 // TODO
 //
-//  /// Create an event iterator that wraps a function returning [`Poll`].
-//  pub fn poll_fn<T, F>(f: F) -> PollFn<F>
-//  where
-//      F: FnMut(&mut Context<'_>) -> Poll<Option<T>>;
 //  /// Create an event iterator where each iteration calls the provided closure
 //  pub fn from_fn<E, F: Future<Output = Option<E>>, G: FnMut() -> F>(
 //      repeater: F,
@@ -95,9 +93,3 @@ pub use self::{
 //  /// Create an event iterator, endlessly repeating a closure which provides
 //  /// the futures, using the output as the event.
 //  pub fn repeat_with<F: Future, G: FnMut() -> F>(repeater: G) -> Repeat<G>;
-//  /// Create an event iterator, which yields an event exactly once by polling
-//  /// the provided future.
-//  pub fn once<F: Future>(f: F)
-//  /// Create an event iterator that lazily generates a value exactly once by
-//  /// invoking the provided closure and polling the returned future.
-//  pub fn once_with<F: Future, G: FnOnce() -> F>(gen: G)
