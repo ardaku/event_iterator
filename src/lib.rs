@@ -48,6 +48,7 @@ mod enumerate;
 mod event_iter;
 mod filter;
 mod filter_map;
+mod from_fn;
 mod from_iter;
 mod fuse;
 mod inspect;
@@ -67,6 +68,7 @@ pub use self::{
     event_iter::EventIterator,
     filter::Filter,
     filter_map::FilterMap,
+    from_fn::{from_fn, FromFn},
     from_iter::{from_iter, FromIter},
     fuse::Fuse,
     inspect::Inspect,
@@ -82,10 +84,6 @@ pub use self::{
 
 // TODO
 //
-//  /// Create an event iterator where each iteration calls the provided closure
-//  pub fn from_fn<E, F: Future<Output = Option<E>>, G: FnMut() -> F>(
-//      repeater: F,
-//  ) -> Repeat<G>;
 //  /// Create an event iterator, endlessly repeating the same future, using the
 //  /// output as the event.
 //  pub fn repeat<E, F: Future<Output = E> + Clone>(event: impl F)
