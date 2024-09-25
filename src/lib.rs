@@ -57,6 +57,7 @@ mod next;
 mod once;
 mod pending;
 mod poll_fn;
+mod repeat_with;
 mod take;
 mod take_while;
 mod tear;
@@ -77,6 +78,7 @@ pub use self::{
     once::{once, Once},
     pending::{pending, Pending},
     poll_fn::{poll_fn, PollFn},
+    repeat_with::{repeat_with, RepeatWith},
     take::Take,
     take_while::TakeWhile,
     tear::Tear,
