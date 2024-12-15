@@ -1,20 +1,27 @@
 use core::{
-    ops::Deref,
+    ops::{Deref, DerefMut},
     pin::Pin,
     task::{Context, Poll},
 };
 
 use crate::{
-    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, TakeWhile,
+    Enumerate, /* Filter, FilterMap, */ Fuse, Inspect, Map, Next,
+    Take, /* TakeWhile, */
     Tear,
 };
 
 /// Asynchronous lending iterator
 ///
-/// Unlike iterators, the type must only be modified through interior mutability
-/// during iteration.  This is to get around the limitation of not being able to
-/// use [`Pin::as_mut()`] in some situations, due to the fact that events take
-/// the lifetime of `Self`, resulting in insufficient lifetimes.
+/// Rather than have a single `poll_next()` method as in `Stream` /
+/// `AsyncIterator`, event iterators have a separate `poll()` and `event()`.
+/// A lot of asynchronous implementation patterns require usage of
+/// [`Pin::as_mut()`].  When GATs are in the mix, this is impossible since it
+/// reduces the lifetime on your pinned reference to `Self`, which would be
+/// insufficient for the return value's lifetime.  This design also allows event
+/// iterators to have unique semantics.
+///
+///  - Event iterators are always `Ready` immediately
+///  - Event iterators can be "peeked"
 ///
 /// # Example
 ///
@@ -28,8 +35,7 @@ pub trait EventIterator {
         Self: 'me;
 
     /// Attempt to pull out the next event of this event iterator, registering
-    /// the current task for wakeup if the value is not yet available, and
-    /// returning `None` if the event iterator is exhausted.
+    /// the current task for wakeup if the event is not yet available.
     ///
     /// # Return value
     ///
@@ -55,10 +61,11 @@ pub trait EventIterator {
     /// calls must never cause undefined behavior (memory corruption, incorrect
     /// use of unsafe functions, or the like), regardless of the event
     /// iterator’s state.
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>>;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()>;
+
+    /// Attempt to borrow the current event, and return `None` if the event
+    /// iterator is exhausted.
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>>;
 
     /// Create a future that resolves to the next event in the event iterator.
     ///
@@ -70,7 +77,7 @@ pub trait EventIterator {
     /// ```rust
     #[doc = include_str!("../examples/next.rs")]
     /// ```
-    fn next<'a>(self: Pin<&'a Self>) -> Next<'a, Self>
+    fn next<'a>(self: Pin<&'a mut Self>) -> Next<'a, Self>
     where
         Self: Sized,
     {
@@ -87,7 +94,7 @@ pub trait EventIterator {
     /// ```rust
     #[doc = include_str!("../examples/next_unpinned.rs")]
     /// ```
-    fn next_unpinned(&self) -> Next<'_, Self>
+    fn next_unpinned(&mut self) -> Next<'_, Self>
     where
         Self: Sized + Unpin,
     {
@@ -166,11 +173,12 @@ pub trait EventIterator {
     fn map<B, F>(self, f: F) -> Map<Self, F>
     where
         Self: Sized,
-        F: for<'me> FnMut(Self::Event<'me>) -> B,
+        F: for<'me> Fn(Self::Event<'me>) -> B,
     {
         Map::new(self, f)
     }
 
+    /*
     /// Create an event iterator which uses a closure to determine if an event
     /// should be yielded.
     ///
@@ -212,7 +220,7 @@ pub trait EventIterator {
         F: for<'me> FnMut(Self::Event<'me>) -> Option<B>,
     {
         FilterMap::new(self, f)
-    }
+    }*/
 
     /// Do something with each event of an event iterator, passing the value on.
     ///
@@ -339,6 +347,7 @@ pub trait EventIterator {
         Take::new(self, n)
     }
 
+    /*
     /// Create an event iterator that yields elements based on a predicate.
     ///
     /// `take_while()` takes a closure as an argument.  It will call this
@@ -360,21 +369,25 @@ pub trait EventIterator {
     {
         TakeWhile::new(self, predicate)
     }
+    */
 }
 
 impl<T> EventIterator for T
 where
-    T: Deref + ?Sized,
+    T: Deref + DerefMut + ?Sized + Unpin,
     T::Target: EventIterator + Unpin,
 {
-    type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me>
-        where Self: 'me;
+    type Event<'me>
+        = <<T as Deref>::Target as EventIterator>::Event<'me>
+    where
+        Self: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        Pin::new(&**self.get_ref()).poll_next(cx)
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        Pin::new(&mut **self.get_mut()).poll(cx)
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        Pin::new(&mut **self.get_mut()).event()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

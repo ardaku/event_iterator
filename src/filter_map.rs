@@ -7,13 +7,16 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator that uses a closure to both filter and map events
-///
-/// This `struct` is created by the [`EventIterator::filter_map()`] method.  See
-/// its documentation for more.
-pub struct FilterMap<I, F> {
-    ei: I,
-    f: Cell<Option<F>>,
+pin_project_lite::pin_project! {
+    /// Event iterator that uses a closure to both filter and map events
+    ///
+    /// This `struct` is created by the [`EventIterator::filter_map()`] method.
+    /// See its documentation for more.
+    pub struct FilterMap<I, F> {
+        #[pin]
+        ei: I,
+        f: F,
+    }
 }
 
 impl<I, F> FilterMap<I, F> {
@@ -43,10 +46,10 @@ where
     type Event<'me> = B where I: 'me;
 
     fn poll_next<'a>(
-        self: Pin<&'a Self>,
+        self: Pin<&'a mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.get_ref();
+        let this = self.project();
 
         loop {
             let Poll::Ready(event) = Pin::new(&this.ei).poll_next(cx) else {

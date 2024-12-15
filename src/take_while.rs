@@ -1,5 +1,4 @@
 use core::{
-    cell::Cell,
     fmt,
     pin::Pin,
     task::{Context, Poll},
@@ -7,19 +6,21 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator that only yields elements while a predicate returns `true`
-///
-/// This `struct` is created by the [`EventIterator::take_while()`] method.  See
-/// its documentation for more.
-pub struct TakeWhile<I, P> {
-    ei: I,
-    p: Cell<Option<P>>,
+pin_project_lite::pin_project! {
+    /// Event iterator that only yields elements while a predicate returns
+    /// `true`
+    ///
+    /// This `struct` is created by the [`EventIterator::take_while()`] method.
+    /// See its documentation for more.
+    pub struct TakeWhile<I, P> {
+        #[pin]
+        ei: I,
+        p: P,
+    }
 }
 
 impl<I, P> TakeWhile<I, P> {
     pub(crate) fn new(ei: I, p: P) -> Self {
-        let p = Cell::new(Some(p));
-
         Self { ei, p }
     }
 }
@@ -43,10 +44,10 @@ where
     type Event<'me> = I::Event<'me> where I: 'me;
 
     fn poll_next<'a>(
-        self: Pin<&'a Self>,
+        self: Pin<&'a mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.get_ref();
+        let this = self.project();
 
         loop {
             let Poll::Ready(event) = Pin::new(&this.ei).poll_next(cx) else {

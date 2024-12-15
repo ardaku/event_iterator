@@ -20,6 +20,9 @@ categories = ["asynchronous", "no-std", "rust-patterns"]
 readme = "README.md"
 rust-version = "1.70"
 
+[dependencies.pin-project-lite]
+version = "0.2"
+
 [dev-dependencies.async_main]
 version = "0.4"
 features = ["pasts"]

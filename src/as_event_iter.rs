@@ -14,7 +14,7 @@ pub struct AsEventIter<'b, E>(&'b (dyn DynEventIter<'b, Event = E> + Unpin));
 impl<'b, E> AsEventIter<'b, E> {
     /// Create a new `AsEventIter` from something implementing
     /// [`EventIterator`].
-    pub fn new(ei: &'b (impl EventIterator<Event<'b> = E> + Unpin)) -> Self {
+    pub fn new(ei: &'b mut (impl EventIterator<Event<'b> = E> + Unpin)) -> Self {
         Self(ei)
     }
 }
@@ -31,10 +31,10 @@ impl<E> EventIterator for AsEventIter<'_, E> {
     type Event<'me> = E where Self: 'me;
 
     fn poll_next(
-        self: Pin<&Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'_>>> {
-        Pin::new(&self.0).poll_next(cx)
+        Pin::new(&mut self.0).poll_next(cx)
     }
 }
 
@@ -56,7 +56,7 @@ pub trait AsEventIterator<'b>: Unpin {
     /// ```rust
     #[doc = include_str!("../examples/tripple_buffer.rs")]
     /// ```
-    fn as_event_iter(&'b self) -> AsEventIter<'b, Self::Event>;
+    fn as_event_iter(&'b mut self) -> AsEventIter<'b, Self::Event>;
 }
 
 impl<'b, T> AsEventIterator<'b> for T
@@ -65,7 +65,7 @@ where
 {
     type Event = <T as EventIterator>::Event<'b>;
 
-    fn as_event_iter(&'b self) -> AsEventIter<'b, Self::Event> {
+    fn as_event_iter(&'b mut self) -> AsEventIter<'b, Self::Event> {
         AsEventIter::new(self)
     }
 }
@@ -73,7 +73,7 @@ where
 trait DynEventIter<'b> {
     type Event;
 
-    fn poll_next(&'b self, cx: &mut Context<'_>) -> Poll<Option<Self::Event>>;
+    fn poll_next(&'b mut self, cx: &mut Context<'_>) -> Poll<Option<Self::Event>>;
 }
 
 impl<'b, T> DynEventIter<'b> for T
@@ -82,7 +82,7 @@ where
 {
     type Event = <T as EventIterator>::Event<'b>;
 
-    fn poll_next(&'b self, cx: &mut Context<'_>) -> Poll<Option<Self::Event>> {
+    fn poll_next(&'b mut self, cx: &mut Context<'_>) -> Poll<Option<Self::Event>> {
         Pin::new(self).poll_next(cx)
     }
 }
