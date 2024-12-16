@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::EventIterator;
+use crate::{consts::EVENT_BEFORE_POLL, EventIterator};
 
 pin_project_lite::pin_project! {
     /// Event iterator that yields the current count and event during iteration
@@ -14,13 +14,13 @@ pin_project_lite::pin_project! {
     pub struct Enumerate<I> {
         #[pin]
         ei: I,
-        count: usize,
+        count: Option<usize>,
     }
 }
 
 impl<I> Enumerate<I> {
     pub(crate) fn new(ei: I) -> Self {
-        let count = 0;
+        let count = None;
 
         Self { ei, count }
     }
@@ -51,13 +51,16 @@ where
         let this = self.project();
         let poll = this.ei.poll(cx);
 
-        (*this.count) += 1;
+        if poll.is_ready() {
+            (*this.count) = Some((*this.count).map(|c| c + 1).unwrap_or(0));
+        }
+
         poll
     }
 
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
-        let count = *this.count;
+        let count = (*this.count).expect(EVENT_BEFORE_POLL);
 
         this.ei.event().map(|e| (count, e))
     }

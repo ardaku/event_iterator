@@ -44,12 +44,12 @@ where
         = I::Event<'me>
     where
         I: 'me;
-    
+
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let this = self.project();
 
         if *this.count == 0 {
-            return Poll::Ready(())
+            return Poll::Ready(());
         }
 
         let poll = this.ei.poll(cx);
@@ -63,9 +63,9 @@ where
 
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
-        
+
         if *this.count == 0 {
-            return None
+            return None;
         }
 
         this.ei.event()

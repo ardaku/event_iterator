@@ -9,9 +9,9 @@ use crate::{consts::EVENT_BEFORE_POLL, EventIterator};
 
 /// Event iterator that was created from an iterator
 ///
-/// This event iterator is created by the [`from_iter()`] function.  See its
+/// This event iterator is created by the [`from_iter_mut()`] function.  See its
 /// documentation for more.
-pub struct FromIter<I>
+pub struct FromIterMut<I>
 where
     I: Iterator,
 {
@@ -19,23 +19,23 @@ where
     started: bool,
 }
 
-impl<I> fmt::Debug for FromIter<I>
+impl<I> fmt::Debug for FromIterMut<I>
 where
     I: Iterator + fmt::Debug,
     <I as Iterator>::Item: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("FromIter").field(&self.iter).finish()
+        f.debug_tuple("FromIterMut").field(&self.iter).finish()
     }
 }
 
-impl<I> EventIterator for FromIter<I>
+impl<I> EventIterator for FromIterMut<I>
 where
     I: Iterator + Unpin,
     <I as Iterator>::Item: Unpin,
 {
     type Event<'me>
-        = &'me <I as Iterator>::Item
+        = &'me mut <I as Iterator>::Item
     where
         I: 'me;
 
@@ -58,7 +58,7 @@ where
             panic!("{EVENT_BEFORE_POLL}");
         }
 
-        this.iter.peek()
+        this.iter.peek_mut()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -66,12 +66,12 @@ where
     }
 }
 
-/// Convert an iterator into an event iterator of references.
+/// Convert an iterator into an event iterator of exclusive references.
 ///
 /// # Example
 ///
 /// ```rust
-#[doc = include_str!("../examples/from_iter.rs")]
+#[doc = include_str!("../examples/from_iter_mut.rs")]
 /// ```
 /// 
 /// Output:
@@ -87,11 +87,11 @@ where
 ///
 /// The returned event iterator might panic if [`EventIterator::event()`] is
 /// called before [`EventIterator::poll()`].
-pub fn from_iter<I>(iter: I) -> FromIter<<I as IntoIterator>::IntoIter>
+pub fn from_iter_mut<I>(iter: I) -> FromIterMut<<I as IntoIterator>::IntoIter>
 where
     I: IntoIterator,
 {
-    FromIter {
+    FromIterMut {
         iter: iter.into_iter().peekable(),
         started: false,
     }

@@ -49,7 +49,9 @@ mod event_iter;
 //mod filter;
 //mod filter_map;
 //mod from_fn;
-//mod from_iter;
+mod consts;
+mod from_iter;
+mod from_iter_mut;
 mod fuse;
 mod inspect;
 mod map;
@@ -73,7 +75,8 @@ pub use self::{
     //    filter::Filter,
     //    filter_map::FilterMap,
     //    from_fn::{from_fn, FromFn},
-    //    from_iter::{from_iter, FromIter},
+    from_iter::{from_iter, FromIter},
+    from_iter_mut::{from_iter_mut, FromIterMut},
     fuse::Fuse,
     inspect::Inspect,
     map::Map,

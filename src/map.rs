@@ -11,20 +11,23 @@ pin_project_lite::pin_project! {
     ///
     /// This `struct` is created by the [`EventIterator::map()`] method.  See
     /// its documentation for more.
-    pub struct Map<I, F> {
+    pub struct Map<I, F, E> {
         #[pin]
         ei: I,
         f: F,
+        event: Option<E>,
     }
 }
 
-impl<I, F> Map<I, F> {
+impl<I, F, E> Map<I, F, E> {
     pub(crate) fn new(ei: I, f: F) -> Self {
-        Self { ei, f }
+        let event = None;
+
+        Self { ei, f, event }
     }
 }
 
-impl<I, F> fmt::Debug for Map<I, F>
+impl<I, F, E> fmt::Debug for Map<I, F, E>
 where
     I: fmt::Debug,
 {
@@ -35,26 +38,31 @@ where
     }
 }
 
-impl<B, I, F> EventIterator for Map<I, F>
+impl<E, I, F> EventIterator for Map<I, F, E>
 where
-    I: EventIterator + Unpin,
-    F: for<'me> Fn(I::Event<'me>) -> B + 'static,
+    I: EventIterator,
+    F: for<'me> FnMut(I::Event<'me>) -> E,
 {
     type Event<'me>
-        = B
+        = &'me E
     where
-        I: 'me;
+        Self: 'me;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        let this = self.project();
+        let mut this = self.project();
+        let poll = this.ei.as_mut().poll(cx);
 
-        this.ei.poll(cx)
+        if poll.is_ready() {
+            (*this.event) = this.ei.event().map(this.f);
+        }
+
+        poll
     }
 
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
 
-        this.ei.event().map(this.f)
+        this.event.as_ref()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -13,15 +13,12 @@ use crate::{
 /// Asynchronous lending iterator
 ///
 /// Rather than have a single `poll_next()` method as in `Stream` /
-/// `AsyncIterator`, event iterators have a separate `poll()` and `event()`.
-/// A lot of asynchronous implementation patterns require usage of
-/// [`Pin::as_mut()`].  When GATs are in the mix, this is impossible since it
-/// reduces the lifetime on your pinned reference to `Self`, which would be
-/// insufficient for the return value's lifetime.  This design also allows event
-/// iterators to have unique semantics.
-///
-///  - Event iterators are always `Ready` immediately
-///  - Event iterators can be "peeked"
+/// `AsyncIterator`, event iterators have separate `poll()` and `event()`
+/// methods for polling and lending.  Why?  A lot of asynchronous implementation
+/// patterns require usage of [`Pin::as_mut()`].  When GATs are in the mix, this
+/// usage is impossible since it reduces the lifetime on your pinned reference
+/// to `Self`, which would be insufficient for a returned
+/// `Poll<Option<Event<'a>>>` lifetime.
 ///
 /// # Example
 ///
@@ -53,18 +50,28 @@ pub trait EventIterator {
     ///
     /// # Panics
     ///
-    /// Once an event iterator has finished (returned `Ready(None)` from
-    /// `poll_next()`), calling its `poll_next()` method again may panic, block
-    /// forever, or cause other kinds of problems; the `EventIterator` trait
-    /// places no requirements on the effects of such a call. However, as the
-    /// `poll_next()` method is not marked unsafe, Rust’s usual rules apply:
-    /// calls must never cause undefined behavior (memory corruption, incorrect
-    /// use of unsafe functions, or the like), regardless of the event
-    /// iterator’s state.
+    /// Once an event iterator has finished (returned `Ready` from `poll()` with
+    /// `event()` returning `None`), calling its `poll()` method again may
+    /// panic, block forever, or cause other kinds of problems; the
+    /// `EventIterator` trait places no requirements on the effects of such a
+    /// call.  However, as the `poll()` method is not marked unsafe, Rust’s
+    /// usual rules apply: calls must never cause undefined behavior (memory
+    /// corruption, incorrect use of unsafe functions, or the like), regardless
+    /// of the event iterator’s state.
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()>;
 
     /// Attempt to borrow the current event, and return `None` if the event
     /// iterator is exhausted.
+    ///
+    /// # Panics
+    ///
+    /// Calling `event()` before `poll()` may panic, block forever or cause
+    /// other kinds of problems; the `EventIterator` trait places no
+    /// requirements on the effects of such a call.  However, as the
+    /// `poll_next()` method is not marked unsafe, Rust’s usual rules apply:
+    /// calls must never cause undefined behavior (memory corruption, incorrect
+    /// use of unsafe functions, or the like), regardless of the event
+    /// iterator’s state.
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>>;
 
     /// Create a future that resolves to the next event in the event iterator.
@@ -170,10 +177,10 @@ pub trait EventIterator {
     /// uwuuwuuwuuwu
     /// uwuuwuuwuuwuuwu
     /// ```
-    fn map<B, F>(self, f: F) -> Map<Self, F>
+    fn map<E, F>(self, f: F) -> Map<Self, F, E>
     where
         Self: Sized,
-        F: for<'me> Fn(Self::Event<'me>) -> B,
+        F: for<'me> FnMut(Self::Event<'me>) -> E,
     {
         Map::new(self, f)
     }
@@ -245,7 +252,7 @@ pub trait EventIterator {
     fn inspect<F>(self, f: F) -> Inspect<Self, F>
     where
         Self: Sized,
-        F: for<'me> FnMut(&Self::Event<'me>),
+        F: for<'me> FnMut(Self::Event<'me>),
     {
         Inspect::new(self, f)
     }
@@ -269,6 +276,9 @@ pub trait EventIterator {
     ///
     /// The returned event iterator might panic if the to-be-returned index
     /// would overflow a [`usize`].
+    ///
+    /// The returned event iterator might panic if [`EventIterator::event()`] is
+    /// called before [`EventIterator::poll()`].
     ///
     /// # Example
     ///
