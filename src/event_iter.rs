@@ -31,8 +31,8 @@ pub trait EventIterator {
     where
         Self: 'me;
 
-    /// Attempt to pull out the next event of this event iterator, registering
-    /// the current task for wakeup if the event is not yet available.
+    /// Attempt to poll the next event of this event iterator, registering the
+    /// current task for wakeup if the event is not yet available.
     ///
     /// # Return value
     ///
@@ -42,11 +42,8 @@ pub trait EventIterator {
     /// - `Poll::Pending` means that this event iterator’s next value is not
     ///   ready yet.  Implementations will ensure that the current task will be
     ///   notified when the next value may be ready.
-    /// - `Poll::Ready(Some(val))` means that the event iterator has
-    ///   successfully produced a value, `val`, and may produce further values
-    ///   on subsequent poll_next calls.
-    /// - `Poll::Ready(None)` means that the event iterator has terminated, and
-    ///   `poll_next()` should not be invoked again.
+    /// - `Poll::Ready(())` means that the event iterator is either ready to
+    ///   lend an event or has terminated.  `event()` should be called to check.
     ///
     /// # Panics
     ///
@@ -68,45 +65,11 @@ pub trait EventIterator {
     /// Calling `event()` before `poll()` may panic, block forever or cause
     /// other kinds of problems; the `EventIterator` trait places no
     /// requirements on the effects of such a call.  However, as the
-    /// `poll_next()` method is not marked unsafe, Rust’s usual rules apply:
-    /// calls must never cause undefined behavior (memory corruption, incorrect
-    /// use of unsafe functions, or the like), regardless of the event
-    /// iterator’s state.
+    /// `poll()` method is not marked unsafe, Rust’s usual rules apply: calls
+    /// must never cause undefined behavior (memory corruption, incorrect use of
+    /// unsafe functions, or the like), regardless of the event iterator’s
+    /// state.
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>>;
-
-    /// Create a future that resolves to the next event in the event iterator.
-    ///
-    /// This is more flexible than [`next_unpinned()`](Self::next_unpinned), but
-    /// often more verbose than needed.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    #[doc = include_str!("../examples/next.rs")]
-    /// ```
-    fn next<'a>(self: Pin<&'a mut Self>) -> Next<'a, Self>
-    where
-        Self: Sized,
-    {
-        Next::new(self)
-    }
-
-    /// Create a future that resolves to the next event in the event iterator.
-    ///
-    /// This is less flexible than [`next()`](Self::next), but avoids the need
-    /// to handle pinning yourself.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    #[doc = include_str!("../examples/next_unpinned.rs")]
-    /// ```
-    fn next_unpinned(&mut self) -> Next<'_, Self>
-    where
-        Self: Sized + Unpin,
-    {
-        Pin::new(self).next()
-    }
 
     /// Return the bounds on the remaining length of the event iterator.
     ///
@@ -142,6 +105,40 @@ pub trait EventIterator {
     /// ```
     fn size_hint(&self) -> (usize, Option<usize>) {
         (0, None)
+    }
+
+    /// Create a future that resolves to the next event in the event iterator.
+    ///
+    /// This is less flexible than [`next()`](Self::next), but avoids the need
+    /// to handle pinning yourself.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/next.rs")]
+    /// ```
+    fn next(&mut self) -> Next<'_, Self>
+    where
+        Self: Sized + Unpin,
+    {
+        Pin::new(self).next_pinned()
+    }
+
+    /// Create a future that resolves to the next event in the event iterator.
+    ///
+    /// This is more flexible than [`next()`](Self::next), but often more
+    /// verbose than needed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/next_pinned.rs")]
+    /// ```
+    fn next_pinned<'a>(self: Pin<&'a mut Self>) -> Next<'a, Self>
+    where
+        Self: Sized,
+    {
+        Next::new(self)
     }
 
     /// Take a closure and create an event iterator which calls that closure on

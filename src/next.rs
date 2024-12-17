@@ -9,7 +9,7 @@ use crate::EventIterator;
 /// Future to get the next event in an [`EventIterator`]
 ///
 /// This `struct` is created by the [`next()`](EventIterator::next) and
-/// [`next_unpinned()`](EventIterator::next_unpinned) methods.  See their
+/// [`next_pinned()`](EventIterator::next_pinned) methods.  See their
 /// documentation for more.
 #[derive(Debug)]
 pub struct Next<'a, Ei>(Option<Pin<&'a mut Ei>>);

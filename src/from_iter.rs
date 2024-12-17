@@ -62,7 +62,13 @@ where
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
+        let (lower, upper) = self.iter.size_hint();
+
+        if self.started {
+            (lower.saturating_sub(1), upper.map(|n| n.saturating_sub(1)))
+        } else {
+            (lower, upper)
+        }
     }
 }
 

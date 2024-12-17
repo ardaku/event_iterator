@@ -20,6 +20,8 @@ pin_project_lite::pin_project! {
 
 impl<I> Take<I> {
     pub(crate) fn new(ei: I, count: usize) -> Self {
+        let count = count.checked_add(1).expect("overflow in take");
+
         Self { ei, count }
     }
 }

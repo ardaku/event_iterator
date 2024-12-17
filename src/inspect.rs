@@ -45,9 +45,7 @@ where
     where
         I: 'me;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        self.as_mut().event();
-
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let mut this = self.project();
         let poll = this.ei.as_mut().poll(cx);
 
