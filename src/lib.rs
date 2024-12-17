@@ -46,8 +46,8 @@
 //mod empty;
 mod enumerate;
 mod event_iter;
-//mod filter;
-//mod filter_map;
+mod filter;
+mod filter_map;
 //mod from_fn;
 mod consts;
 mod from_iter;
@@ -64,7 +64,7 @@ mod next;
 //mod repeat;
 //mod repeat_with;
 mod take;
-//mod take_while;
+mod take_while;
 mod tear;
 
 pub use self::{
@@ -72,8 +72,8 @@ pub use self::{
     //    empty::{empty, Empty},
     enumerate::Enumerate,
     event_iter::EventIterator,
-    //    filter::Filter,
-    //    filter_map::FilterMap,
+    filter::Filter,
+    filter_map::FilterMap,
     //    from_fn::{from_fn, FromFn},
     from_iter::{from_iter, FromIter},
     from_iter_mut::{from_iter_mut, FromIterMut},
@@ -89,6 +89,6 @@ pub use self::{
     //    repeat::{repeat, Repeat},
     //    repeat_with::{repeat_with, RepeatWith},
     take::Take,
-    //    take_while::TakeWhile,
+    take_while::TakeWhile,
     tear::Tear,
 };

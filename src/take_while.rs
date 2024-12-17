@@ -14,13 +14,15 @@ pin_project_lite::pin_project! {
     /// See its documentation for more.
     pub struct TakeWhile<I, P> {
         #[pin]
-        ei: I,
+        ei: Option<I>,
         p: P,
     }
 }
 
 impl<I, P> TakeWhile<I, P> {
     pub(crate) fn new(ei: I, p: P) -> Self {
+        let ei = Some(ei);
+
         Self { ei, p }
     }
 }
@@ -39,37 +41,43 @@ where
 impl<I, P> EventIterator for TakeWhile<I, P>
 where
     I: EventIterator,
-    P: for<'me> FnMut(&I::Event<'me>) -> bool + 'static + Unpin,
+    P: for<'me> FnMut(I::Event<'me>) -> bool + 'static,
 {
-    type Event<'me> = I::Event<'me> where I: 'me;
+    type Event<'me>
+        = I::Event<'me>
+    where
+        I: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let mut this = self.project();
+        let Some(mut ei) = this.ei.as_mut().as_pin_mut() else {
+            return Poll::Ready(());
+        };
+        let Poll::Ready(()) = ei.as_mut().poll(cx) else {
+            return Poll::Pending;
+        };
+        let Some(event) = ei.as_mut().event() else {
+            return Poll::Ready(());
+        };
+
+        if !(this.p)(event) {
+            this.ei.set(None);
+        }
+
+        Poll::Ready(())
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
 
-        loop {
-            let Poll::Ready(event) = Pin::new(&this.ei).poll_next(cx) else {
-                break Poll::Pending;
-            };
-            let Some(event) = event else {
-                break Poll::Ready(None);
-            };
-            let Some(mut predicate) = this.p.take() else {
-                break Poll::Ready(None);
-            };
-            let should_yield = predicate(&event);
-
-            if should_yield {
-                this.p.set(Some(predicate));
-                break Poll::Ready(Some(event));
-            }
-        }
+        this.ei.as_pin_mut()?.event()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let (_, upper) = self.ei.size_hint();
+        let Some(ref ei) = self.ei else {
+            return (0, None);
+        };
+        let (_, upper) = ei.size_hint();
 
         // Can't know a lower bound, due to the predicate
         (0, upper)

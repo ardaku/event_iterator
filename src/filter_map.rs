@@ -1,5 +1,4 @@
 use core::{
-    cell::Cell,
     fmt,
     pin::Pin,
     task::{Context, Poll},
@@ -12,22 +11,23 @@ pin_project_lite::pin_project! {
     ///
     /// This `struct` is created by the [`EventIterator::filter_map()`] method.
     /// See its documentation for more.
-    pub struct FilterMap<I, F> {
+    pub struct FilterMap<I, F, E> {
         #[pin]
         ei: I,
         f: F,
+        event: Option<E>,
     }
 }
 
-impl<I, F> FilterMap<I, F> {
+impl<I, F, E> FilterMap<I, F, E> {
     pub(crate) fn new(ei: I, f: F) -> Self {
-        let f = Cell::new(Some(f));
+        let event = None;
 
-        Self { ei, f }
+        Self { ei, f, event }
     }
 }
 
-impl<I, F> fmt::Debug for FilterMap<I, F>
+impl<I, F, E> fmt::Debug for FilterMap<I, F, E>
 where
     I: fmt::Debug,
 {
@@ -38,37 +38,42 @@ where
     }
 }
 
-impl<I, F, B> EventIterator for FilterMap<I, F>
+impl<I, F, E> EventIterator for FilterMap<I, F, E>
 where
     I: EventIterator,
-    F: for<'me> FnMut(I::Event<'me>) -> Option<B> + 'static + Unpin,
+    F: for<'me> FnMut(I::Event<'me>) -> Option<E>,
 {
-    type Event<'me> = B where I: 'me;
+    type Event<'me>
+        = &'me E
+    where
+        I: 'me,
+        E: 'me,
+        F: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.project();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let mut this = self.project();
 
         loop {
-            let Poll::Ready(event) = Pin::new(&this.ei).poll_next(cx) else {
+            let Poll::Ready(()) = this.ei.as_mut().poll(cx) else {
                 break Poll::Pending;
             };
-            let Some(event) = event else {
-                break Poll::Ready(None);
+            let Some(event) = this.ei.as_mut().event() else {
+                (*this.event) = None;
+                break Poll::Ready(());
             };
-            let Some(mut f) = this.f.take() else {
-                break Poll::Ready(None);
-            };
-            let event = f(event);
 
-            this.f.set(Some(f));
+            (*this.event) = (this.f)(event);
 
-            let Some(event) = event else { continue };
-
-            break Poll::Ready(Some(event));
+            if this.event.is_some() {
+                break Poll::Ready(());
+            }
         }
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        let this = self.project();
+
+        this.event.as_ref()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

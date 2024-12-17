@@ -39,34 +39,35 @@ where
 impl<I, P> EventIterator for Filter<I, P>
 where
     I: EventIterator,
-    P: for<'me> FnMut(&I::Event<'me>) -> bool + 'static + Unpin,
+    P: for<'me> FnMut(I::Event<'me>) -> bool,
 {
-    type Event<'me> = I::Event<'me> where I: 'me;
+    type Event<'me>
+        = I::Event<'me>
+    where
+        I: 'me,
+        P: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.get_ref();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let mut this = self.project();
 
         loop {
-            let Poll::Ready(event) = Pin::new(&this.ei).poll_next(cx) else {
+            let Poll::Ready(()) = this.ei.as_mut().poll(cx) else {
                 break Poll::Pending;
             };
-            let Some(event) = event else {
-                break Poll::Ready(None);
+            let Some(event) = this.ei.as_mut().event() else {
+                break Poll::Ready(());
             };
-            let Some(mut predicate) = this.p.take() else {
-                break Poll::Ready(None);
-            };
-            let should_yield = predicate(&event);
 
-            this.p.set(Some(predicate));
-
-            if should_yield {
-                break Poll::Ready(Some(event));
+            if (this.p)(event) {
+                break Poll::Ready(());
             }
         }
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        let this = self.project();
+
+        this.ei.event()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

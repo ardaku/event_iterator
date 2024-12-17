@@ -5,8 +5,7 @@ use core::{
 };
 
 use crate::{
-    Enumerate, /* Filter, FilterMap, */ Fuse, Inspect, Map, Next,
-    Take, /* TakeWhile, */
+    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, TakeWhile,
     Tear,
 };
 
@@ -182,7 +181,6 @@ pub trait EventIterator {
         Map::new(self, f)
     }
 
-    /*
     /// Create an event iterator which uses a closure to determine if an event
     /// should be yielded.
     ///
@@ -198,7 +196,7 @@ pub trait EventIterator {
     fn filter<P>(self, predicate: P) -> Filter<Self, P>
     where
         Self: Sized,
-        P: for<'me> FnMut(&Self::Event<'me>) -> bool,
+        P: for<'me> FnMut(Self::Event<'me>) -> bool,
     {
         Filter::new(self, predicate)
     }
@@ -218,13 +216,13 @@ pub trait EventIterator {
     /// ```rust
     #[doc = include_str!("../examples/filter_map.rs")]
     /// ```
-    fn filter_map<B, F>(self, f: F) -> FilterMap<Self, F>
+    fn filter_map<E, F>(self, f: F) -> FilterMap<Self, F, E>
     where
         Self: Sized,
-        F: for<'me> FnMut(Self::Event<'me>) -> Option<B>,
+        F: for<'me> FnMut(Self::Event<'me>) -> Option<E>,
     {
         FilterMap::new(self, f)
-    }*/
+    }
 
     /// Do something with each event of an event iterator, passing the value on.
     ///
@@ -354,7 +352,6 @@ pub trait EventIterator {
         Take::new(self, n)
     }
 
-    /*
     /// Create an event iterator that yields elements based on a predicate.
     ///
     /// `take_while()` takes a closure as an argument.  It will call this
@@ -372,11 +369,10 @@ pub trait EventIterator {
     fn take_while<P>(self, predicate: P) -> TakeWhile<Self, P>
     where
         Self: Sized,
-        P: for<'me> FnMut(&Self::Event<'me>) -> bool,
+        P: for<'me> FnMut(Self::Event<'me>) -> bool,
     {
         TakeWhile::new(self, predicate)
     }
-    */
 }
 
 impl<T> EventIterator for T
