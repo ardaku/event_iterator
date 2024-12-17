@@ -40,7 +40,7 @@ where
 
 impl<I> EventIterator for Take<I>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
 {
     type Event<'me>
         = I::Event<'me>

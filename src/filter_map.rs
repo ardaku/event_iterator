@@ -40,7 +40,7 @@ where
 
 impl<I, F, B> EventIterator for FilterMap<I, F>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
     F: for<'me> FnMut(I::Event<'me>) -> Option<B> + 'static + Unpin,
 {
     type Event<'me> = B where I: 'me;

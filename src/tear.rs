@@ -36,7 +36,7 @@ impl<I> Tear<I> {
 
 impl<I> EventIterator for Tear<I>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
 {
     type Event<'me>
         = I::Event<'me>
@@ -54,12 +54,10 @@ where
 
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let mut this = self.project();
-        let Some(ei) = this.ei.as_mut().as_pin_mut() else {
-            return None;
-        };
+        let ei = this.ei.as_mut().as_pin_mut()?;
 
         if ei.event().is_none() {
-            (*this.ei) = None;
+            this.ei.set(None);
             return None;
         }
 

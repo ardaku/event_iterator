@@ -40,7 +40,7 @@ where
 
 impl<I> EventIterator for Enumerate<I>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
 {
     type Event<'me>
         = (usize, I::Event<'me>)

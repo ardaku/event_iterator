@@ -38,7 +38,7 @@ where
 
 impl<I, P> EventIterator for TakeWhile<I, P>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
     P: for<'me> FnMut(&I::Event<'me>) -> bool + 'static + Unpin,
 {
     type Event<'me> = I::Event<'me> where I: 'me;

@@ -54,7 +54,7 @@ where
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.get_mut();
 
-        if this.started == false {
+        if !this.started {
             panic!("{EVENT_BEFORE_POLL}");
         }
 

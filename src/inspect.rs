@@ -37,7 +37,7 @@ where
 
 impl<I, F> EventIterator for Inspect<I, F>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
     F: for<'me> FnMut(I::Event<'me>) + 'static,
 {
     type Event<'me>

@@ -1,113 +1,111 @@
 use std::{
-    cell::Cell,
     future::Future,
-    io, mem,
+    io,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
-    thread,
+    thread::{self, JoinHandle},
 };
 
 use event_iterator::EventIterator;
 use whisk::Channel;
 
-/// An event iterator, for reading from stdin
+/// An event iterator, for scanning from stdin
 #[derive(Default)]
 pub struct Stdin {
-    sender: Channel<Option<String>>,
-    recver: Cell<Option<Channel<Option<String>>>>,
-    buffer: Cell<Option<String>>,
-    send: Cell<Option<Pin<Box<dyn Future<Output = ()> + Send>>>>,
+    channel: Channel<Option<Arc<String>>>,
+    buffer: Option<Arc<String>>,
+    join: Option<JoinHandle<()>>,
+}
+
+impl Drop for Stdin {
+    fn drop(&mut self) {
+        self.join.take().unwrap().join().unwrap();
+    }
+}
+
+impl Stdin {
+    pub fn new() -> Self {
+        let channel = Channel::new();
+        let sender = channel.clone();
+        let join = thread::spawn(move || {
+            pasts::Executor::default().block_on(async move {
+                let stdin = io::stdin();
+                let mut buffer = String::new();
+                let mut sending = Arc::new(String::new());
+
+                while stdin.read_line(&mut buffer).is_ok() {
+                    let buf = if let Some(s) = Arc::get_mut(&mut sending) {
+                        s
+                    } else {
+                        sending = Arc::new(String::new());
+                        Arc::get_mut(&mut sending).unwrap()
+                    };
+
+                    // Remove trailing newline
+                    buffer.pop();
+
+                    if buffer.is_empty() {
+                        break;
+                    }
+
+                    buf.replace_range(.., buffer.as_str());
+                    sender.send(Some(sending.clone())).await;
+                    buffer.clear();
+                }
+
+                sender.send(None).await;
+            })
+        });
+
+        Self {
+            buffer: None,
+            join: Some(join),
+            channel,
+        }
+    }
 }
 
 impl EventIterator for Stdin {
     type Event<'me> = Buffer<'me>;
 
-    fn poll_next(
-        self: Pin<&Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'_>>> {
-        let this = self.get_ref();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let this = self.get_mut();
 
-        if let Some(buffer) = this.buffer.take() {
-            let sender = this.sender.clone();
+        this.buffer = None;
 
-            this.send.set(Some(Box::pin(async move {
-                sender.send(Some(buffer)).await
-            })));
-        }
-
-        if let Some(mut future) = this.send.take() {
-            if future.as_mut().poll(cx).is_pending() {
-                this.send.set(Some(future));
-                return Poll::Pending;
-            }
-        }
-
-        let mut recver = this.recver.take().unwrap();
-        let poll = match Pin::new(&mut recver).poll(cx) {
-            Poll::Ready(Some(buffer)) => {
-                this.buffer.set(Some(buffer));
-                Poll::Ready(Some(Buffer(&this.buffer)))
-            }
-            Poll::Ready(None) => Poll::Ready(None),
-            Poll::Pending => Poll::Pending,
+        match Pin::new(&mut this.channel).poll(cx) {
+            Poll::Ready(Some(buffer)) => this.buffer = Some(buffer),
+            Poll::Ready(None) => {}
+            Poll::Pending => return Poll::Pending,
         };
 
-        this.recver.set(Some(recver));
-        poll
+        Poll::Ready(())
+    }
+
+    fn event(self: Pin<&mut Self>) -> Option<Self::Event<'_>> {
+        let this = self.get_mut();
+
+        Some(Buffer(this.buffer.as_ref()?))
     }
 }
 
-pub struct Buffer<'a>(&'a Cell<Option<String>>);
+pub struct Buffer<'a>(&'a String);
 
 impl Buffer<'_> {
     pub fn with(&self, f: impl FnOnce(&str)) {
-        self.0.set(self.0.take().map(|buf| {
-            f(&buf);
-            buf
-        }));
+        f(self.0)
     }
-}
-
-async fn stdin_thread(
-    recver: Channel<Option<String>>,
-    sender: Channel<Option<String>>,
-) {
-    let stdin = io::stdin();
-    let mut buffer = String::new();
-
-    while stdin.read_line(&mut buffer).is_ok() {
-        // Remove trailing newline
-        buffer.pop();
-
-        if buffer.is_empty() {
-            break;
-        }
-
-        sender.send(Some(mem::take(&mut buffer))).await;
-        buffer = recver.recv().await.unwrap_or_default();
-        buffer.clear();
-    }
-
-    sender.send(None).await;
 }
 
 #[async_main::async_main]
 async fn main(_spawner: async_main::LocalSpawner) {
-    // Init stdin
-    let stdin = Stdin::default();
-    let recver = stdin.sender.clone();
-    let sender = Channel::new();
+    println!("Echo example - enter empty line to quit");
 
-    stdin.recver.set(Some(sender.clone()));
-    thread::spawn(move || {
-        pasts::Executor::default().block_on(stdin_thread(recver, sender))
-    });
+    let mut stdin = Stdin::new();
 
     // Check messages
-    while let Some(buffer) = stdin.next_unpinned().await {
-        buffer.with(|message| {
-            println!("Echo: {message}");
-        });
+    while let Some(buffer) = stdin.next().await {
+        buffer.with(|message| println!("Echo: {message}"));
     }
 }
