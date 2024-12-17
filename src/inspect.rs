@@ -38,12 +38,13 @@ where
 impl<I, F> EventIterator for Inspect<I, F>
 where
     I: EventIterator,
-    F: for<'me> FnMut(I::Event<'me>) + 'static,
+    F: for<'me> FnMut(I::Event<'me>),
 {
     type Event<'me>
         = I::Event<'me>
     where
-        I: 'me;
+        I: 'me,
+        F: 'me;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let mut this = self.project();

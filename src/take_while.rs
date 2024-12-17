@@ -41,12 +41,13 @@ where
 impl<I, P> EventIterator for TakeWhile<I, P>
 where
     I: EventIterator,
-    P: for<'me> FnMut(I::Event<'me>) -> bool + 'static,
+    P: for<'me> FnMut(I::Event<'me>) -> bool,
 {
     type Event<'me>
         = I::Event<'me>
     where
-        I: 'me;
+        I: 'me,
+        P: 'me;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let mut this = self.project();
