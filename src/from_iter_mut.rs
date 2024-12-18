@@ -7,7 +7,7 @@ use core::{
 
 use crate::{consts::EVENT_BEFORE_POLL, EventIterator};
 
-/// Event iterator that was created from an iterator
+/// Event iterator of exclusive references that was created from an iterator
 ///
 /// This event iterator is created by the [`from_iter_mut()`] function.  See its
 /// documentation for more.

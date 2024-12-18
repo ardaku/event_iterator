@@ -1,5 +1,4 @@
 use core::{
-    cell::Cell,
     fmt,
     future::Future,
     pin::Pin,
@@ -8,22 +7,30 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator where each iteration calls the provided closure
-///
-/// This event iterator is created by the [`from_fn()`] function.  See its
-/// documentation for more.
-pub struct FromFn<F, G> {
-    generator: Cell<Option<G>>,
-    future: Cell<Option<F>>,
+pin_project_lite::pin_project! {
+    /// Event iterator where each iteration calls the provided closure
+    ///
+    /// This event iterator is created by the [`from_fn()`] function.  See its
+    /// documentation for more.
+    pub struct FromFn<G, F>
+    where
+        F: Future,
+        G: FnMut() -> F,
+    {
+        generator: G,
+        #[pin]
+        future: Option<F>,
+        event: Option<F::Output>,
+    }
 }
 
-impl<F, G> fmt::Debug for FromFn<F, G> {
+impl<G, F> fmt::Debug for FromFn<G, F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("FromFn").finish_non_exhaustive()
     }
 }
 
-impl<E, F, G> EventIterator for FromFn<F, G>
+impl<G, F, E> EventIterator for FromFn<G, F>
 where
     F: Future<Output = Option<E>> + Unpin,
     G: FnMut() -> F + Unpin,
@@ -61,13 +68,14 @@ where
 /// ```rust
 #[doc = include_str!("../examples/from_fn.rs")]
 /// ```
-pub fn from_fn<E, F, G>(gen: G) -> FromFn<F, G>
+pub fn from_fn<G, F, E>(generator: G) -> FromFn<G, F>
 where
     F: Future<Output = Option<E>>,
     G: FnMut() -> F,
 {
     FromFn {
-        generator: Cell::new(Some(gen)),
-        future: Cell::new(None),
+        generator,
+        future: None,
+        event: None,
     }
 }

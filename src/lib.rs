@@ -43,7 +43,7 @@
 )]
 
 //mod as_event_iter;
-//mod empty;
+mod empty;
 mod enumerate;
 mod event_iter;
 mod filter;
@@ -69,12 +69,12 @@ mod tear;
 
 pub use self::{
     //    as_event_iter::{AsEventIter, AsEventIterator},
-    //    empty::{empty, Empty},
+    empty::{empty, Empty},
     enumerate::Enumerate,
     event_iter::EventIterator,
     filter::Filter,
     filter_map::FilterMap,
-    //    from_fn::{from_fn, FromFn},
+    //from_fn::{from_fn, FromFn},
     from_iter::{from_iter, FromIter},
     from_iter_mut::{from_iter_mut, FromIterMut},
     fuse::Fuse,
