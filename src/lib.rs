@@ -50,11 +50,11 @@ mod filter;
 mod filter_map;
 //mod from_fn;
 mod consts;
-mod from_iter;
 mod from_iter_mut;
+mod from_iter_ref;
 mod fuse;
 mod inspect;
-mod map;
+mod map_ref;
 mod next;
 //mod once;
 //mod once_with;
@@ -74,12 +74,12 @@ pub use self::{
     event_iter::EventIterator,
     filter::Filter,
     filter_map::FilterMap,
-    //from_fn::{from_fn, FromFn},
-    from_iter::{from_iter, FromIter},
     from_iter_mut::{from_iter_mut, FromIterMut},
+    //from_fn::{from_fn, FromFn},
+    from_iter_ref::{from_iter_ref, FromIterRef},
     fuse::Fuse,
     inspect::Inspect,
-    map::Map,
+    map_ref::MapRef,
     next::Next,
     //    once::{once, Once},
     //    once_with::{once_with, OnceWith},

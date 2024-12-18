@@ -7,11 +7,11 @@ use core::{
 use crate::EventIterator;
 
 pin_project_lite::pin_project! {
-    /// Event iterator that maps the events with a closure
+    /// Event iterator that maps the events with a closure to a reference
     ///
-    /// This `struct` is created by the [`EventIterator::map()`] method.  See
-    /// its documentation for more.
-    pub struct Map<I, F, E> {
+    /// This `struct` is created by the [`EventIterator::map_ref()`] method.
+    /// See its documentation for more.
+    pub struct MapRef<I, F, E> {
         #[pin]
         ei: I,
         f: F,
@@ -19,7 +19,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<I, F, E> Map<I, F, E> {
+impl<I, F, E> MapRef<I, F, E> {
     pub(crate) fn new(ei: I, f: F) -> Self {
         let event = None;
 
@@ -27,18 +27,18 @@ impl<I, F, E> Map<I, F, E> {
     }
 }
 
-impl<I, F, E> fmt::Debug for Map<I, F, E>
+impl<I, F, E> fmt::Debug for MapRef<I, F, E>
 where
     I: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Map")
+        f.debug_struct("MapRef")
             .field("ei", &self.ei)
             .finish_non_exhaustive()
     }
 }
 
-impl<E, I, F> EventIterator for Map<I, F, E>
+impl<E, I, F> EventIterator for MapRef<I, F, E>
 where
     I: EventIterator,
     F: for<'me> FnMut(I::Event<'me>) -> E,

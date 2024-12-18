@@ -5,7 +5,7 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, TakeWhile,
+    Enumerate, Filter, FilterMap, Fuse, Inspect, MapRef, Next, Take, TakeWhile,
     Tear,
 };
 
@@ -143,26 +143,26 @@ pub trait EventIterator {
     /// Take a closure and create an event iterator which calls that closure on
     /// each event.
     ///
-    /// `map()` transforms one event iterator into another, by means of its
+    /// `map_ref()` transforms one event iterator into another, by means of its
     /// argument: something that implements [`FnMut`].  It produces a new event
     /// iterator which calls this closure on each event of the original event
     /// iterator.
     ///
-    /// If you are good at thinking in types, you can think of `map()` like
+    /// If you are good at thinking in types, you can think of `map_ref()` like
     /// this: If you have an iterator that gives you elements of some type `A`,
-    /// and you want an iterator of some other type `B`, you can use `map()`,
-    /// passing a closure that takes an `A` and returns a `B`.
+    /// and you want an iterator of some other type `B`, you can use
+    /// `map_ref()`, passing a closure that takes an `A` and returns a `B`.
     ///
-    /// `map()` is conceptually similar to a `while let Some(_) = _.await` loop.
-    /// However, as `map()` is lazy, it is best used when you’re already working
-    /// with other event iterators.  If you’re doing some sort of looping for a
-    /// side effect, it’s considered more idiomatic to use
-    /// `while let Some(_) = _.await` than `map()`.
+    /// `map_ref()` is conceptually similar to a `while let Some(_) = _.await`
+    /// loop.  However, as `map_ref()` is lazy, it is best used when you’re
+    /// already working with other event iterators.  If you’re doing some sort
+    /// of looping for a side effect, it’s considered more idiomatic to use
+    /// `while let Some(_) = _.await` than `map_ref()`.
     ///
     /// # Example
     ///
     /// ```rust
-    #[doc = include_str!("../examples/map.rs")]
+    #[doc = include_str!("../examples/map_ref.rs")]
     /// ```
     /// 
     /// Output:
@@ -173,12 +173,12 @@ pub trait EventIterator {
     /// uwuuwuuwuuwu
     /// uwuuwuuwuuwuuwu
     /// ```
-    fn map<E, F>(self, f: F) -> Map<Self, F, E>
+    fn map_ref<E, F>(self, f: F) -> MapRef<Self, F, E>
     where
         Self: Sized,
         F: for<'me> FnMut(Self::Event<'me>) -> E,
     {
-        Map::new(self, f)
+        MapRef::new(self, f)
     }
 
     /// Create an event iterator which uses a closure to determine if an event
@@ -207,9 +207,9 @@ pub trait EventIterator {
     /// supplied closure returns `Some(event)`.
     ///
     /// `filter_map()` can be used to make chains of [`filter()`](Self::filter)
-    /// and [`map()`](Self::map) more concise.  The example below shows how a
-    /// `map().filter().map()` can be shortened to a single call to
-    /// `filter_map()`.
+    /// and [`map_ref()`](Self::map_ref) more concise.  The example below shows
+    /// how a `map_ref().filter().map_ref()` can be shortened to a single call
+    /// to `filter_map()`.
     ///
     /// # Example
     ///
