@@ -54,6 +54,7 @@ mod from_iter_mut;
 mod from_iter_ref;
 mod fuse;
 mod inspect;
+mod map_mut;
 mod map_ref;
 mod next;
 //mod once;
@@ -79,6 +80,7 @@ pub use self::{
     from_iter_ref::{from_iter_ref, FromIterRef},
     fuse::Fuse,
     inspect::Inspect,
+    map_mut::MapMut,
     map_ref::MapRef,
     next::Next,
     //    once::{once, Once},

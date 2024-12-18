@@ -5,8 +5,8 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMap, Fuse, Inspect, MapRef, Next, Take, TakeWhile,
-    Tear,
+    Enumerate, Filter, FilterMap, Fuse, Inspect, MapMut, MapRef, Next, Take,
+    TakeWhile, Tear,
 };
 
 /// Asynchronous lending iterator
@@ -34,9 +34,6 @@ pub trait EventIterator {
     /// current task for wakeup if the event is not yet available.
     ///
     /// # Return value
-    ///
-    /// There are several possible return values, each indicating a distinct
-    /// event iterator state:
     ///
     /// - `Poll::Pending` means that this event iterator’s next value is not
     ///   ready yet.  Implementations will ensure that the current task will be
@@ -140,8 +137,8 @@ pub trait EventIterator {
         Next::new(self)
     }
 
-    /// Take a closure and create an event iterator which calls that closure on
-    /// each event.
+    /// Take a closure and create an event iterator of references which calls
+    /// that closure on each event.
     ///
     /// `map_ref()` transforms one event iterator into another, by means of its
     /// argument: something that implements [`FnMut`].  It produces a new event
@@ -179,6 +176,47 @@ pub trait EventIterator {
         F: for<'me> FnMut(Self::Event<'me>) -> E,
     {
         MapRef::new(self, f)
+    }
+
+    /// Take a closure and create an event iterator of exclusive references
+    /// which calls that closure on each event.
+    ///
+    /// `map_mut()` transforms one event iterator into another, by means of its
+    /// argument: something that implements [`FnMut`].  It produces a new event
+    /// iterator which calls this closure on each event of the original event
+    /// iterator.
+    ///
+    /// If you are good at thinking in types, you can think of `map_mut()` like
+    /// this: If you have an iterator that gives you elements of some type `A`,
+    /// and you want an iterator of some other type `B`, you can use
+    /// `map_mut()`, passing a closure that takes an `A` and returns a `B`.
+    ///
+    /// `map_mut()` is conceptually similar to a `while let Some(_) = _.await`
+    /// loop.  However, as `map_mut()` is lazy, it is best used when you’re
+    /// already working with other event iterators.  If you’re doing some sort
+    /// of looping for a side effect, it’s considered more idiomatic to use
+    /// `while let Some(_) = _.await` than `map_mut()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/map_mut.rs")]
+    /// ```
+    /// 
+    /// Output:
+    /// ```console
+    /// uwu
+    /// uwuuwu
+    /// uwuuwuuwu
+    /// uwuuwuuwuuwu
+    /// uwuuwuuwuuwuuwu
+    /// ```
+    fn map_mut<E, F>(self, f: F) -> MapMut<Self, F, E>
+    where
+        Self: Sized,
+        F: for<'me> FnMut(Self::Event<'me>) -> E,
+    {
+        MapMut::new(self, f)
     }
 
     /// Create an event iterator which uses a closure to determine if an event
