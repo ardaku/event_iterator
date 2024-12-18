@@ -59,7 +59,7 @@ mod map_ref;
 mod next;
 //mod once;
 //mod once_with;
-//mod pending;
+mod pending;
 //mod poll_fn;
 //mod ready;
 //mod repeat;
@@ -85,7 +85,7 @@ pub use self::{
     next::Next,
     //    once::{once, Once},
     //    once_with::{once_with, OnceWith},
-    //    pending::{pending, Pending},
+    pending::{pending, Pending},
     //    poll_fn::{poll_fn, PollFn},
     //    ready::{ready, Ready},
     //    repeat::{repeat, Repeat},

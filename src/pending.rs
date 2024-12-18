@@ -5,9 +5,10 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::EventIterator;
+use crate::{consts::EVENT_BEFORE_POLL, EventIterator};
 
-/// Event iterator that never produces an event and never finishes
+/// [Torn](crate::Tear) event iterator that never produces an event and never
+/// finishes
 ///
 /// This event iterator is created by the [`pending()`] function.  See its
 /// documentation for more.
@@ -20,13 +21,17 @@ impl<E> fmt::Debug for Pending<E> {
 }
 
 impl<E> EventIterator for Pending<E> {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<()> {
         Poll::Pending
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        panic!("{EVENT_BEFORE_POLL}");
     }
 }
 
