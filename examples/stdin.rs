@@ -90,6 +90,7 @@ impl EventIterator for Stdin {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Buffer<'a>(&'a String);
 
 impl Buffer<'_> {

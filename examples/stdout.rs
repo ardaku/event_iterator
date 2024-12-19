@@ -1,4 +1,5 @@
 use core::{
+    cell::Cell,
     pin::{pin, Pin},
     task::{Context, Poll},
 };
@@ -32,15 +33,19 @@ impl EventIterator for Stdout {
     fn event(self: Pin<&mut Self>) -> Option<Self::Event<'_>> {
         let this = self.get_mut();
 
-        Some(Buffer(this.buffer.as_mut().unwrap()))
+        Some(Buffer(Cell::from_mut(this.buffer.as_mut().unwrap())))
     }
 }
 
-pub struct Buffer<'a>(&'a mut String);
+#[derive(Copy, Clone)]
+pub struct Buffer<'a>(&'a Cell<String>);
 
 impl Buffer<'_> {
-    pub fn write(&mut self, text: &str) {
-        self.0.replace_range(.., text);
+    pub fn write(&self, text: &str) {
+        let mut buffer = self.0.take();
+
+        buffer.replace_range(.., text);
+        self.0.set(buffer);
     }
 }
 

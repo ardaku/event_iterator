@@ -47,15 +47,12 @@ mod empty;
 mod enumerate;
 mod event_iter;
 mod filter;
-mod filter_map_mut;
 mod filter_map_ref;
 //mod from_fn;
 mod consts;
-mod from_iter_mut;
 mod from_iter_ref;
 mod fuse;
 mod inspect;
-mod map_mut;
 mod map_ref;
 mod next;
 //mod once;
@@ -75,14 +72,11 @@ pub use self::{
     enumerate::Enumerate,
     event_iter::EventIterator,
     filter::Filter,
-    filter_map_mut::FilterMapMut,
     filter_map_ref::FilterMapRef,
-    from_iter_mut::{from_iter_mut, FromIterMut},
     //from_fn::{from_fn, FromFn},
     from_iter_ref::{from_iter_ref, FromIterRef},
     fuse::Fuse,
     inspect::Inspect,
-    map_mut::MapMut,
     map_ref::MapRef,
     next::Next,
     //    once::{once, Once},

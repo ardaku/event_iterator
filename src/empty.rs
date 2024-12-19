@@ -11,15 +11,23 @@ use crate::EventIterator;
 ///
 /// This event iterator is created by the [`empty()`] function.  See its
 /// documentation for more.
-pub struct Empty<E>(PhantomData<E>);
+pub struct Empty<E>(PhantomData<E>)
+where
+    E: Copy;
 
-impl<E> fmt::Debug for Empty<E> {
+impl<E> fmt::Debug for Empty<E>
+where
+    E: Copy,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Empty").field(&format_args!("_")).finish()
     }
 }
 
-impl<E> EventIterator for Empty<E> {
+impl<E> EventIterator for Empty<E>
+where
+    E: Copy,
+{
     type Event<'me>
         = E
     where
@@ -47,6 +55,9 @@ impl<E> EventIterator for Empty<E> {
 /// ```rust
 #[doc = include_str!("../examples/empty.rs")]
 /// ```
-pub fn empty<E>() -> Empty<E> {
+pub fn empty<E>() -> Empty<E>
+where
+    E: Copy,
+{
     Empty(PhantomData::<E>)
 }

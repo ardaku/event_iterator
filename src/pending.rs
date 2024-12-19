@@ -12,15 +12,23 @@ use crate::{consts::EVENT_BEFORE_POLL, EventIterator};
 ///
 /// This event iterator is created by the [`pending()`] function.  See its
 /// documentation for more.
-pub struct Pending<E>(PhantomData<E>);
+pub struct Pending<E>(PhantomData<E>)
+where
+    E: Copy;
 
-impl<E> fmt::Debug for Pending<E> {
+impl<E> fmt::Debug for Pending<E>
+where
+    E: Copy,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Pending").field(&format_args!("_")).finish()
     }
 }
 
-impl<E> EventIterator for Pending<E> {
+impl<E> EventIterator for Pending<E>
+where
+    E: Copy,
+{
     type Event<'me>
         = E
     where
@@ -44,6 +52,9 @@ impl<E> EventIterator for Pending<E> {
 /// ```rust
 #[doc = include_str!("../examples/pending.rs")]
 /// ```
-pub fn pending<E>() -> Pending<E> {
+pub fn pending<E>() -> Pending<E>
+where
+    E: Copy,
+{
     Pending(PhantomData::<E>)
 }

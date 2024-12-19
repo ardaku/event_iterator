@@ -5,8 +5,8 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMapMut, FilterMapRef, Fuse, Inspect, MapMut,
-    MapRef, Next, Take, TakeWhile, Tear,
+    Enumerate, Filter, FilterMapRef, Fuse, Inspect, MapRef, Next, Take,
+    TakeWhile, Tear,
 };
 
 /// Asynchronous lending iterator
@@ -26,7 +26,7 @@ use crate::{
 /// ```
 pub trait EventIterator {
     /// The type of the events being iterated over
-    type Event<'me>
+    type Event<'me>: Copy
     where
         Self: 'me;
 
@@ -178,47 +178,6 @@ pub trait EventIterator {
         MapRef::new(self, f)
     }
 
-    /// Take a closure and create an event iterator of exclusive references
-    /// which calls that closure on each event.
-    ///
-    /// `map_mut()` transforms one event iterator into another, by means of its
-    /// argument: something that implements [`FnMut`].  It produces a new event
-    /// iterator which calls this closure on each event of the original event
-    /// iterator.
-    ///
-    /// If you are good at thinking in types, you can think of `map_mut()` like
-    /// this: If you have an iterator that gives you elements of some type `A`,
-    /// and you want an iterator of some other type `B`, you can use
-    /// `map_mut()`, passing a closure that takes an `A` and returns a `B`.
-    ///
-    /// `map_mut()` is conceptually similar to a `while let Some(_) = _.await`
-    /// loop.  However, as `map_mut()` is lazy, it is best used when you’re
-    /// already working with other event iterators.  If you’re doing some sort
-    /// of looping for a side effect, it’s considered more idiomatic to use
-    /// `while let Some(_) = _.await` than `map_mut()`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    #[doc = include_str!("../examples/map_mut.rs")]
-    /// ```
-    /// 
-    /// Output:
-    /// ```console
-    /// uwu
-    /// uwuuwu
-    /// uwuuwuuwu
-    /// uwuuwuuwuuwu
-    /// uwuuwuuwuuwuuwu
-    /// ```
-    fn map_mut<E, F>(self, f: F) -> MapMut<Self, F, E>
-    where
-        Self: Sized,
-        F: for<'me> FnMut(Self::Event<'me>) -> E,
-    {
-        MapMut::new(self, f)
-    }
-
     /// Create an event iterator which uses a closure to determine if an event
     /// should be yielded.
     ///
@@ -260,29 +219,6 @@ pub trait EventIterator {
         F: for<'me> FnMut(Self::Event<'me>) -> Option<E>,
     {
         FilterMapRef::new(self, f)
-    }
-
-    /// Create an event iterator that both filters and maps.
-    ///
-    /// The returned event iterator yields only the events for which the
-    /// supplied closure returns `Some(event)`.
-    ///
-    /// `filter_map_mut()` can be used to make chains of
-    /// [`filter()`](Self::filter) and [`map_mut()`](Self::map_mut) more
-    /// concise.  The example below shows how a `map_mut().filter().map_mut()`
-    /// can be shortened to a single call to `filter_map_mut()`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    #[doc = include_str!("../examples/filter_map_mut.rs")]
-    /// ```
-    fn filter_map_mut<E, F>(self, f: F) -> FilterMapMut<Self, F, E>
-    where
-        Self: Sized,
-        F: for<'me> FnMut(Self::Event<'me>) -> Option<E>,
-    {
-        FilterMapMut::new(self, f)
     }
 
     /// Do something with each event of an event iterator, passing the value on.
