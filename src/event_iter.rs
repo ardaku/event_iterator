@@ -275,7 +275,7 @@ pub trait EventIterator {
     /// # Example
     ///
     /// ```rust
-    #[doc = include_str!("../examples/filter_map_ref.rs")]
+    #[doc = include_str!("../examples/filter_map_mut.rs")]
     /// ```
     fn filter_map_mut<E, F>(self, f: F) -> FilterMapMut<Self, F, E>
     where
