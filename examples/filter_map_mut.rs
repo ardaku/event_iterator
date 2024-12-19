@@ -4,21 +4,21 @@ use event_iterator::EventIterator;
 async fn main(_spawner: async_main::LocalSpawner) {
     let mut ei =
         event_iterator::from_iter_ref(["1", "two", "NaN", "four", "5"])
-            .filter_map(|s| s.parse().ok());
+            .filter_map_mut(|&s| s.parse().ok());
 
-    assert_eq!(ei.next().await, Some(&1));
-    assert_eq!(ei.next().await, Some(&5));
+    assert_eq!(ei.next().await, Some(&mut 1));
+    assert_eq!(ei.next().await, Some(&mut 5));
     assert_eq!(ei.next().await, None);
 
     // Here’s the same example, but with `filter()` and `map_ref()`:
 
     let mut ei =
         event_iterator::from_iter_ref(["1", "two", "NaN", "four", "5"])
-            .map_ref(|&s| s.parse())
+            .map_mut(|&s| s.parse())
             .filter(|s| s.is_ok())
-            .map_ref(|s| s.clone().unwrap());
+            .map_mut(|s| s.clone().unwrap());
 
-    assert_eq!(ei.next().await, Some(&1));
-    assert_eq!(ei.next().await, Some(&5));
+    assert_eq!(ei.next().await, Some(&mut 1));
+    assert_eq!(ei.next().await, Some(&mut 5));
     assert_eq!(ei.next().await, None);
 }

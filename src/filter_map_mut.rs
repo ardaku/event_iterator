@@ -7,11 +7,12 @@ use core::{
 use crate::EventIterator;
 
 pin_project_lite::pin_project! {
-    /// Event iterator that uses a closure to both filter and map events
+    /// Event iterator that uses a closure to both filter and map a reference to
+    /// events
     ///
-    /// This `struct` is created by the [`EventIterator::filter_map()`] method.
-    /// See its documentation for more.
-    pub struct FilterMap<I, F, E> {
+    /// This `struct` is created by the [`EventIterator::filter_map_mut()`]
+    /// method.  See its documentation for more.
+    pub struct FilterMapMut<I, F, E> {
         #[pin]
         ei: I,
         f: F,
@@ -19,7 +20,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<I, F, E> FilterMap<I, F, E> {
+impl<I, F, E> FilterMapMut<I, F, E> {
     pub(crate) fn new(ei: I, f: F) -> Self {
         let event = None;
 
@@ -27,24 +28,24 @@ impl<I, F, E> FilterMap<I, F, E> {
     }
 }
 
-impl<I, F, E> fmt::Debug for FilterMap<I, F, E>
+impl<I, F, E> fmt::Debug for FilterMapMut<I, F, E>
 where
     I: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("FilterMap")
+        f.debug_struct("FilterMapMut")
             .field("ei", &self.ei)
             .finish_non_exhaustive()
     }
 }
 
-impl<I, F, E> EventIterator for FilterMap<I, F, E>
+impl<I, F, E> EventIterator for FilterMapMut<I, F, E>
 where
     I: EventIterator,
     F: for<'me> FnMut(I::Event<'me>) -> Option<E>,
 {
     type Event<'me>
-        = &'me E
+        = &'me mut E
     where
         I: 'me,
         E: 'me,
@@ -73,7 +74,7 @@ where
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
 
-        this.event.as_ref()
+        this.event.as_mut()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

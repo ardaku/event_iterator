@@ -5,8 +5,8 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMap, Fuse, Inspect, MapMut, MapRef, Next, Take,
-    TakeWhile, Tear,
+    Enumerate, Filter, FilterMapMut, FilterMapRef, Fuse, Inspect, MapMut,
+    MapRef, Next, Take, TakeWhile, Tear,
 };
 
 /// Asynchronous lending iterator
@@ -244,22 +244,45 @@ pub trait EventIterator {
     /// The returned event iterator yields only the events for which the
     /// supplied closure returns `Some(event)`.
     ///
-    /// `filter_map()` can be used to make chains of [`filter()`](Self::filter)
-    /// and [`map_ref()`](Self::map_ref) more concise.  The example below shows
-    /// how a `map_ref().filter().map_ref()` can be shortened to a single call
-    /// to `filter_map()`.
+    /// `filter_map_ref()` can be used to make chains of
+    /// [`filter()`](Self::filter) and [`map_ref()`](Self::map_ref) more
+    /// concise.  The example below shows how a `map_ref().filter().map_ref()`
+    /// can be shortened to a single call to `filter_map_ref()`.
     ///
     /// # Example
     ///
     /// ```rust
-    #[doc = include_str!("../examples/filter_map.rs")]
+    #[doc = include_str!("../examples/filter_map_ref.rs")]
     /// ```
-    fn filter_map<E, F>(self, f: F) -> FilterMap<Self, F, E>
+    fn filter_map_ref<E, F>(self, f: F) -> FilterMapRef<Self, F, E>
     where
         Self: Sized,
         F: for<'me> FnMut(Self::Event<'me>) -> Option<E>,
     {
-        FilterMap::new(self, f)
+        FilterMapRef::new(self, f)
+    }
+
+    /// Create an event iterator that both filters and maps.
+    ///
+    /// The returned event iterator yields only the events for which the
+    /// supplied closure returns `Some(event)`.
+    ///
+    /// `filter_map_mut()` can be used to make chains of
+    /// [`filter()`](Self::filter) and [`map_mut()`](Self::map_mut) more
+    /// concise.  The example below shows how a `map_mut().filter().map_mut()`
+    /// can be shortened to a single call to `filter_map_mut()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/filter_map_ref.rs")]
+    /// ```
+    fn filter_map_mut<E, F>(self, f: F) -> FilterMapMut<Self, F, E>
+    where
+        Self: Sized,
+        F: for<'me> FnMut(Self::Event<'me>) -> Option<E>,
+    {
+        FilterMapMut::new(self, f)
     }
 
     /// Do something with each event of an event iterator, passing the value on.
