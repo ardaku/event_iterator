@@ -53,6 +53,7 @@ mod consts;
 mod from_iter_ref;
 mod fuse;
 mod inspect;
+mod map;
 mod map_ref;
 mod next;
 //mod once;
@@ -70,13 +71,14 @@ pub use self::{
     //    as_event_iter::{AsEventIter, AsEventIterator},
     empty::{empty, Empty},
     enumerate::Enumerate,
-    event_iter::EventIterator,
+    event_iter::{EventIterator, Lend},
     filter::Filter,
     filter_map_ref::FilterMapRef,
     //from_fn::{from_fn, FromFn},
     from_iter_ref::{from_iter_ref, FromIterRef},
     fuse::Fuse,
     inspect::Inspect,
+    map::Map,
     map_ref::MapRef,
     next::Next,
     //    once::{once, Once},

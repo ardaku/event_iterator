@@ -5,9 +5,38 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMapRef, Fuse, Inspect, MapRef, Next, Take,
+    Enumerate, Filter, FilterMapRef, Fuse, Inspect, Map, MapRef, Next, Take,
     TakeWhile, Tear,
 };
+
+/// A lending conversion trait
+pub trait Lend {
+    /// Type converting from
+    type From<'a>;
+    /// Type converting into
+    type Into<'a>;
+
+    /// Lend a type to another type.
+    fn lend<'a>(self, from: Self::From<'a>) -> Self::Into<'a>;
+}
+
+/*
+impl<T> Lend for T
+where
+    T: Copy,
+{
+    type Event<'me>
+        = T
+    where
+        T: 'me;
+
+    fn lend<'a>(self) -> Self::Event<'a>
+    where
+        T: 'a,
+    {
+        self
+    }
+}*/
 
 /// Asynchronous lending iterator
 ///
@@ -135,6 +164,47 @@ pub trait EventIterator {
         Self: Sized,
     {
         Next::new(self)
+    }
+
+    /// Take a closure and create an event iterator which calls that closure on
+    /// each event.
+    ///
+    /// `map_ref()` transforms one event iterator into another, by means of its
+    /// argument: something that implements [`FnMut`].  It produces a new event
+    /// iterator which calls this closure on each event of the original event
+    /// iterator.
+    ///
+    /// If you are good at thinking in types, you can think of `map_ref()` like
+    /// this: If you have an iterator that gives you elements of some type `A`,
+    /// and you want an iterator of some other type `B`, you can use
+    /// `map_ref()`, passing a closure that takes an `A` and returns a `B`.
+    ///
+    /// `map_ref()` is conceptually similar to a `while let Some(_) = _.await`
+    /// loop.  However, as `map_ref()` is lazy, it is best used when you’re
+    /// already working with other event iterators.  If you’re doing some sort
+    /// of looping for a side effect, it’s considered more idiomatic to use
+    /// `while let Some(_) = _.await` than `map_ref()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/map.rs")]
+    /// ```
+    ///
+    /// Output:
+    /// ```console
+    /// uwu
+    /// uwuuwu
+    /// uwuuwuuwu
+    /// uwuuwuuwuuwu
+    /// uwuuwuuwuuwuuwu
+    /// ```
+    fn map<L>(self, lend: L) -> Map<Self, L>
+    where
+        Self: Sized,
+        L: for<'me> Lend<From<'me> = Self::Event<'me>> + Copy,
+    {
+        Map::new(self, lend)
     }
 
     /// Take a closure and create an event iterator of references which calls
