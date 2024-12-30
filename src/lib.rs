@@ -71,7 +71,7 @@ pub use self::{
     //    as_event_iter::{AsEventIter, AsEventIterator},
     empty::{empty, Empty},
     enumerate::Enumerate,
-    event_iter::{EventIterator, Lend},
+    event_iter::{EventIterator, LendAs},
     filter::Filter,
     filter_map_ref::FilterMapRef,
     //from_fn::{from_fn, FromFn},

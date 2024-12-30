@@ -10,14 +10,16 @@ use crate::{
 };
 
 /// A lending conversion trait
-pub trait Lend {
+///
+/// For lending a type as another.
+pub trait LendAs {
     /// Type converting from
     type From<'a>;
     /// Type converting into
     type Into<'a>;
 
     /// Lend a type to another type.
-    fn lend<'a>(self, from: Self::From<'a>) -> Self::Into<'a>;
+    fn lend_as<'a>(self, from: Self::From<'a>) -> Self::Into<'a>;
 }
 
 /*
@@ -190,7 +192,7 @@ pub trait EventIterator {
     /// ```rust
     #[doc = include_str!("../examples/map.rs")]
     /// ```
-    ///
+    /// 
     /// Output:
     /// ```console
     /// uwu
@@ -199,12 +201,12 @@ pub trait EventIterator {
     /// uwuuwuuwuuwu
     /// uwuuwuuwuuwuuwu
     /// ```
-    fn map<L>(self, lend: L) -> Map<Self, L>
+    fn map<L>(self, lend_as: L) -> Map<Self, L>
     where
         Self: Sized,
-        L: for<'me> Lend<From<'me> = Self::Event<'me>> + Copy,
+        L: for<'me> LendAs<From<'me> = Self::Event<'me>> + Copy,
     {
-        Map::new(self, lend)
+        Map::new(self, lend_as)
     }
 
     /// Take a closure and create an event iterator of references which calls

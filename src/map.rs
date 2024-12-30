@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{EventIterator, Lend};
+use crate::{EventIterator, LendAs};
 
 pin_project_lite::pin_project! {
     /// Event iterator that maps the events with a closure
@@ -14,13 +14,13 @@ pin_project_lite::pin_project! {
     pub struct Map<I, L> {
         #[pin]
         ei: I,
-        lend: L,
+        lend_as : L,
     }
 }
 
 impl<I, L> Map<I, L> {
-    pub(crate) fn new(ei: I, lend: L) -> Self {
-        Self { ei, lend }
+    pub(crate) fn new(ei: I, lend_as: L) -> Self {
+        Self { ei, lend_as }
     }
 }
 
@@ -38,7 +38,7 @@ where
 impl<I, L> EventIterator for Map<I, L>
 where
     I: EventIterator,
-    L: for<'me> Lend<From<'me> = I::Event<'me>> + Copy,
+    L: for<'me> LendAs<From<'me> = I::Event<'me>> + Copy,
     for<'a> L::Into<'a>: Copy,
 {
     type Event<'me>
@@ -55,7 +55,7 @@ where
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
 
-        Some(this.lend.lend(this.ei.event()?))
+        Some(this.lend_as.lend_as(this.ei.event()?))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
