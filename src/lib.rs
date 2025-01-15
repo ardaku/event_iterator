@@ -63,6 +63,7 @@ mod pending;
 //mod ready;
 //mod repeat;
 //mod repeat_with;
+mod lend_as;
 mod take;
 mod take_while;
 mod tear;
@@ -71,13 +72,14 @@ pub use self::{
     //    as_event_iter::{AsEventIter, AsEventIterator},
     empty::{empty, Empty},
     enumerate::Enumerate,
-    event_iter::{EventIterator, LendAs},
+    event_iter::EventIterator,
     filter::Filter,
     filter_map_ref::FilterMapRef,
     //from_fn::{from_fn, FromFn},
     from_iter_ref::{from_iter_ref, FromIterRef},
     fuse::Fuse,
     inspect::Inspect,
+    lend_as::LendAs,
     map::Map,
     map_ref::MapRef,
     next::Next,

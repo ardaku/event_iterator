@@ -5,40 +5,9 @@ use core::{
 };
 
 use crate::{
-    Enumerate, Filter, FilterMapRef, Fuse, Inspect, Map, MapRef, Next, Take,
-    TakeWhile, Tear,
+    Enumerate, Filter, FilterMapRef, Fuse, Inspect, LendAs, Map, MapRef, Next,
+    Take, TakeWhile, Tear,
 };
-
-/// A lending conversion trait
-///
-/// For lending a type as another.
-pub trait LendAs {
-    /// Type converting from
-    type From<'a>;
-    /// Type converting into
-    type Into<'a>;
-
-    /// Lend a type to another type.
-    fn lend_as<'a>(self, from: Self::From<'a>) -> Self::Into<'a>;
-}
-
-/*
-impl<T> Lend for T
-where
-    T: Copy,
-{
-    type Event<'me>
-        = T
-    where
-        T: 'me;
-
-    fn lend<'a>(self) -> Self::Event<'a>
-    where
-        T: 'a,
-    {
-        self
-    }
-}*/
 
 /// Asynchronous lending iterator
 ///
@@ -168,8 +137,8 @@ pub trait EventIterator {
         Next::new(self)
     }
 
-    /// Take a closure and create an event iterator which calls that closure on
-    /// each event.
+    /// Take a type implementing [`LendAs`] and create an event iterator which
+    /// lends as a new type on each event.
     ///
     /// `map_ref()` transforms one event iterator into another, by means of its
     /// argument: something that implements [`FnMut`].  It produces a new event

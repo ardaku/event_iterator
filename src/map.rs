@@ -7,7 +7,7 @@ use core::{
 use crate::{EventIterator, LendAs};
 
 pin_project_lite::pin_project! {
-    /// Event iterator that maps the events with a closure
+    /// Event iterator that maps the events with a type implementing [`LendAs`]
     ///
     /// This `struct` is created by the [`EventIterator::map()`] method.
     /// See its documentation for more.
