@@ -16,11 +16,11 @@ async fn main(_spawner: async_main::LocalSpawner) {
         })
     });
 
-    assert_eq!(ei.next_unpinned().await, Some(1));
-    assert_eq!(ei.next_unpinned().await, Some(2));
-    assert_eq!(ei.next_unpinned().await, Some(3));
-    assert_eq!(ei.next_unpinned().await, Some(4));
-    assert_eq!(ei.next_unpinned().await, Some(5));
-    assert_eq!(ei.next_unpinned().await, None);
-    assert_eq!(ei.next_unpinned().await, None);
+    assert_eq!(ei.next().await, Some(1));
+    assert_eq!(ei.next().await, Some(2));
+    assert_eq!(ei.next().await, Some(3));
+    assert_eq!(ei.next().await, Some(4));
+    assert_eq!(ei.next().await, Some(5));
+    assert_eq!(ei.next().await, None);
+    assert_eq!(ei.next().await, None);
 }

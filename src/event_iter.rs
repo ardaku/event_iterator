@@ -1,20 +1,23 @@
 use core::{
-    ops::Deref,
+    ops::{Deref, DerefMut},
     pin::Pin,
     task::{Context, Poll},
 };
 
 use crate::{
-    Enumerate, Filter, FilterMap, Fuse, Inspect, Map, Next, Take, TakeWhile,
-    Tear,
+    Enumerate, Filter, FilterMapRef, Fuse, Inspect, LendAs, Map, MapRef, Next,
+    Take, TakeWhile, Tear,
 };
 
 /// Asynchronous lending iterator
 ///
-/// Unlike iterators, the type must only be modified through interior mutability
-/// during iteration.  This is to get around the limitation of not being able to
-/// use [`Pin::as_mut()`] in some situations, due to the fact that events take
-/// the lifetime of `Self`, resulting in insufficient lifetimes.
+/// Rather than have a single `poll_next()` method as in `Stream` /
+/// `AsyncIterator`, event iterators have separate `poll()` and `event()`
+/// methods for polling and lending.  Why?  A lot of asynchronous implementation
+/// patterns require usage of [`Pin::as_mut()`].  When GATs are in the mix, this
+/// usage is impossible since it reduces the lifetime on your pinned reference
+/// to `Self`, which would be insufficient for a returned
+/// `Poll<Option<Event<'a>>>` lifetime.
 ///
 /// # Example
 ///
@@ -23,76 +26,46 @@ use crate::{
 /// ```
 pub trait EventIterator {
     /// The type of the events being iterated over
-    type Event<'me>
+    type Event<'me>: Copy
     where
         Self: 'me;
 
-    /// Attempt to pull out the next event of this event iterator, registering
-    /// the current task for wakeup if the value is not yet available, and
-    /// returning `None` if the event iterator is exhausted.
+    /// Attempt to poll the next event of this event iterator, registering the
+    /// current task for wakeup if the event is not yet available.
     ///
     /// # Return value
-    ///
-    /// There are several possible return values, each indicating a distinct
-    /// event iterator state:
     ///
     /// - `Poll::Pending` means that this event iterator’s next value is not
     ///   ready yet.  Implementations will ensure that the current task will be
     ///   notified when the next value may be ready.
-    /// - `Poll::Ready(Some(val))` means that the event iterator has
-    ///   successfully produced a value, `val`, and may produce further values
-    ///   on subsequent poll_next calls.
-    /// - `Poll::Ready(None)` means that the event iterator has terminated, and
-    ///   `poll_next()` should not be invoked again.
+    /// - `Poll::Ready(())` means that the event iterator is either ready to
+    ///   lend an event or has terminated.  `event()` should be called to check.
     ///
     /// # Panics
     ///
-    /// Once an event iterator has finished (returned `Ready(None)` from
-    /// `poll_next()`), calling its `poll_next()` method again may panic, block
-    /// forever, or cause other kinds of problems; the `EventIterator` trait
-    /// places no requirements on the effects of such a call. However, as the
-    /// `poll_next()` method is not marked unsafe, Rust’s usual rules apply:
-    /// calls must never cause undefined behavior (memory corruption, incorrect
-    /// use of unsafe functions, or the like), regardless of the event
-    /// iterator’s state.
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>>;
+    /// Once an event iterator has finished (returned `Ready` from `poll()` with
+    /// `event()` returning `None`), calling its `poll()` method again may
+    /// panic, block forever, or cause other kinds of problems; the
+    /// `EventIterator` trait places no requirements on the effects of such a
+    /// call.  However, as the `poll()` method is not marked unsafe, Rust’s
+    /// usual rules apply: calls must never cause undefined behavior (memory
+    /// corruption, incorrect use of unsafe functions, or the like), regardless
+    /// of the event iterator’s state.
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()>;
 
-    /// Create a future that resolves to the next event in the event iterator.
+    /// Attempt to borrow the current event, and return `None` if the event
+    /// iterator is exhausted.
     ///
-    /// This is more flexible than [`next_unpinned()`](Self::next_unpinned), but
-    /// often more verbose than needed.
+    /// # Panics
     ///
-    /// # Example
-    ///
-    /// ```rust
-    #[doc = include_str!("../examples/next.rs")]
-    /// ```
-    fn next<'a>(self: Pin<&'a Self>) -> Next<'a, Self>
-    where
-        Self: Sized,
-    {
-        Next::new(self)
-    }
-
-    /// Create a future that resolves to the next event in the event iterator.
-    ///
-    /// This is less flexible than [`next()`](Self::next), but avoids the need
-    /// to handle pinning yourself.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    #[doc = include_str!("../examples/next_unpinned.rs")]
-    /// ```
-    fn next_unpinned(&self) -> Next<'_, Self>
-    where
-        Self: Sized + Unpin,
-    {
-        Pin::new(self).next()
-    }
+    /// Calling `event()` before `poll()` may panic, block forever or cause
+    /// other kinds of problems; the `EventIterator` trait places no
+    /// requirements on the effects of such a call.  However, as the
+    /// `poll()` method is not marked unsafe, Rust’s usual rules apply: calls
+    /// must never cause undefined behavior (memory corruption, incorrect use of
+    /// unsafe functions, or the like), regardless of the event iterator’s
+    /// state.
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>>;
 
     /// Return the bounds on the remaining length of the event iterator.
     ///
@@ -130,24 +103,58 @@ pub trait EventIterator {
         (0, None)
     }
 
-    /// Take a closure and create an event iterator which calls that closure on
-    /// each event.
+    /// Create a future that resolves to the next event in the event iterator.
     ///
-    /// `map()` transforms one event iterator into another, by means of its
+    /// This is less flexible than [`next()`](Self::next), but avoids the need
+    /// to handle pinning yourself.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/next.rs")]
+    /// ```
+    fn next(&mut self) -> Next<'_, Self>
+    where
+        Self: Sized + Unpin,
+    {
+        Pin::new(self).next_pinned()
+    }
+
+    /// Create a future that resolves to the next event in the event iterator.
+    ///
+    /// This is more flexible than [`next()`](Self::next), but often more
+    /// verbose than needed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/next_pinned.rs")]
+    /// ```
+    fn next_pinned<'a>(self: Pin<&'a mut Self>) -> Next<'a, Self>
+    where
+        Self: Sized,
+    {
+        Next::new(self)
+    }
+
+    /// Take a type implementing [`LendAs`] and create an event iterator which
+    /// lends as a new type on each event.
+    ///
+    /// `map_ref()` transforms one event iterator into another, by means of its
     /// argument: something that implements [`FnMut`].  It produces a new event
     /// iterator which calls this closure on each event of the original event
     /// iterator.
     ///
-    /// If you are good at thinking in types, you can think of `map()` like
+    /// If you are good at thinking in types, you can think of `map_ref()` like
     /// this: If you have an iterator that gives you elements of some type `A`,
-    /// and you want an iterator of some other type `B`, you can use `map()`,
-    /// passing a closure that takes an `A` and returns a `B`.
+    /// and you want an iterator of some other type `B`, you can use
+    /// `map_ref()`, passing a closure that takes an `A` and returns a `B`.
     ///
-    /// `map()` is conceptually similar to a `while let Some(_) = _.await` loop.
-    /// However, as `map()` is lazy, it is best used when you’re already working
-    /// with other event iterators.  If you’re doing some sort of looping for a
-    /// side effect, it’s considered more idiomatic to use
-    /// `while let Some(_) = _.await` than `map()`.
+    /// `map_ref()` is conceptually similar to a `while let Some(_) = _.await`
+    /// loop.  However, as `map_ref()` is lazy, it is best used when you’re
+    /// already working with other event iterators.  If you’re doing some sort
+    /// of looping for a side effect, it’s considered more idiomatic to use
+    /// `while let Some(_) = _.await` than `map_ref()`.
     ///
     /// # Example
     ///
@@ -163,12 +170,53 @@ pub trait EventIterator {
     /// uwuuwuuwuuwu
     /// uwuuwuuwuuwuuwu
     /// ```
-    fn map<B, F>(self, f: F) -> Map<Self, F>
+    fn map<L>(self, lend_as: L) -> Map<Self, L>
     where
         Self: Sized,
-        F: for<'me> FnMut(Self::Event<'me>) -> B,
+        L: for<'me> LendAs<From<'me> = Self::Event<'me>> + Copy,
     {
-        Map::new(self, f)
+        Map::new(self, lend_as)
+    }
+
+    /// Take a closure and create an event iterator of references which calls
+    /// that closure on each event.
+    ///
+    /// `map_ref()` transforms one event iterator into another, by means of its
+    /// argument: something that implements [`FnMut`].  It produces a new event
+    /// iterator which calls this closure on each event of the original event
+    /// iterator.
+    ///
+    /// If you are good at thinking in types, you can think of `map_ref()` like
+    /// this: If you have an iterator that gives you elements of some type `A`,
+    /// and you want an iterator of some other type `B`, you can use
+    /// `map_ref()`, passing a closure that takes an `A` and returns a `B`.
+    ///
+    /// `map_ref()` is conceptually similar to a `while let Some(_) = _.await`
+    /// loop.  However, as `map_ref()` is lazy, it is best used when you’re
+    /// already working with other event iterators.  If you’re doing some sort
+    /// of looping for a side effect, it’s considered more idiomatic to use
+    /// `while let Some(_) = _.await` than `map_ref()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    #[doc = include_str!("../examples/map_ref.rs")]
+    /// ```
+    /// 
+    /// Output:
+    /// ```console
+    /// uwu
+    /// uwuuwu
+    /// uwuuwuuwu
+    /// uwuuwuuwuuwu
+    /// uwuuwuuwuuwuuwu
+    /// ```
+    fn map_ref<E, F>(self, f: F) -> MapRef<Self, F, E>
+    where
+        Self: Sized,
+        F: for<'me> FnMut(Self::Event<'me>) -> E,
+    {
+        MapRef::new(self, f)
     }
 
     /// Create an event iterator which uses a closure to determine if an event
@@ -186,7 +234,7 @@ pub trait EventIterator {
     fn filter<P>(self, predicate: P) -> Filter<Self, P>
     where
         Self: Sized,
-        P: for<'me> FnMut(&Self::Event<'me>) -> bool,
+        P: for<'me> FnMut(Self::Event<'me>) -> bool,
     {
         Filter::new(self, predicate)
     }
@@ -196,22 +244,22 @@ pub trait EventIterator {
     /// The returned event iterator yields only the events for which the
     /// supplied closure returns `Some(event)`.
     ///
-    /// `filter_map()` can be used to make chains of [`filter()`](Self::filter)
-    /// and [`map()`](Self::map) more concise.  The example below shows how a
-    /// `map().filter().map()` can be shortened to a single call to
-    /// `filter_map()`.
+    /// `filter_map_ref()` can be used to make chains of
+    /// [`filter()`](Self::filter) and [`map_ref()`](Self::map_ref) more
+    /// concise.  The example below shows how a `map_ref().filter().map_ref()`
+    /// can be shortened to a single call to `filter_map_ref()`.
     ///
     /// # Example
     ///
     /// ```rust
-    #[doc = include_str!("../examples/filter_map.rs")]
+    #[doc = include_str!("../examples/filter_map_ref.rs")]
     /// ```
-    fn filter_map<B, F>(self, f: F) -> FilterMap<Self, F>
+    fn filter_map_ref<E, F>(self, f: F) -> FilterMapRef<Self, F, E>
     where
         Self: Sized,
-        F: for<'me> FnMut(Self::Event<'me>) -> Option<B>,
+        F: for<'me> FnMut(Self::Event<'me>) -> Option<E>,
     {
-        FilterMap::new(self, f)
+        FilterMapRef::new(self, f)
     }
 
     /// Do something with each event of an event iterator, passing the value on.
@@ -237,7 +285,7 @@ pub trait EventIterator {
     fn inspect<F>(self, f: F) -> Inspect<Self, F>
     where
         Self: Sized,
-        F: for<'me> FnMut(&Self::Event<'me>),
+        F: for<'me> FnMut(Self::Event<'me>),
     {
         Inspect::new(self, f)
     }
@@ -261,6 +309,9 @@ pub trait EventIterator {
     ///
     /// The returned event iterator might panic if the to-be-returned index
     /// would overflow a [`usize`].
+    ///
+    /// The returned event iterator might panic if [`EventIterator::event()`] is
+    /// called before [`EventIterator::poll()`].
     ///
     /// # Example
     ///
@@ -356,7 +407,7 @@ pub trait EventIterator {
     fn take_while<P>(self, predicate: P) -> TakeWhile<Self, P>
     where
         Self: Sized,
-        P: for<'me> FnMut(&Self::Event<'me>) -> bool,
+        P: for<'me> FnMut(Self::Event<'me>) -> bool,
     {
         TakeWhile::new(self, predicate)
     }
@@ -364,17 +415,20 @@ pub trait EventIterator {
 
 impl<T> EventIterator for T
 where
-    T: Deref + ?Sized,
+    T: Deref + DerefMut + ?Sized + Unpin,
     T::Target: EventIterator + Unpin,
 {
-    type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me>
-        where Self: 'me;
+    type Event<'me>
+        = <<T as Deref>::Target as EventIterator>::Event<'me>
+    where
+        Self: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        Pin::new(&**self.get_ref()).poll_next(cx)
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        Pin::new(&mut **self.get_mut()).poll(cx)
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        Pin::new(&mut **self.get_mut()).event()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -1,5 +1,4 @@
 use core::{
-    cell::Cell,
     fmt,
     pin::Pin,
     task::{Context, Poll},
@@ -7,15 +6,18 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator that returns `Ready(None)` forever after it's finished
-///
-/// An event iterator is finished after it first returns `Ready(None)`.
-///
-/// This `struct` is created by the [`EventIterator::fuse()`] method.  See its
-/// documentation for more.
-pub struct Fuse<I> {
-    ei: I,
-    ended: Cell<bool>,
+pin_project_lite::pin_project! {
+    /// Event iterator that returns `Ready(None)` forever after it's finished
+    ///
+    /// An event iterator is finished after it first returns `Ready(None)`.
+    ///
+    /// This `struct` is created by the [`EventIterator::fuse()`] method.  See
+    /// its documentation for more.
+    #[repr(transparent)]
+    pub struct Fuse<I> {
+        #[pin]
+        ei: Option<I>,
+    }
 }
 
 impl<I> fmt::Debug for Fuse<I>
@@ -23,47 +25,50 @@ where
     I: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Fuse")
-            .field("ei", &self.ei)
-            .field("ended", &self.ended)
-            .finish()
+        f.debug_struct("Fuse").field("ei", &self.ei).finish()
     }
 }
 
 impl<I> Fuse<I> {
     pub(crate) fn new(ei: I) -> Self {
-        let ended = Cell::new(false);
-
-        Self { ei, ended }
+        Self { ei: Some(ei) }
     }
 }
 
 impl<I> EventIterator for Fuse<I>
 where
-    I: EventIterator + Unpin,
+    I: EventIterator,
 {
-    type Event<'me> = I::Event<'me> where I: 'me;
+    type Event<'me>
+        = I::Event<'me>
+    where
+        I: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.get_ref();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let this = self.project();
+        let Some(ei) = this.ei.as_pin_mut() else {
+            return Poll::Ready(());
+        };
 
-        if this.ended.get() {
-            return Poll::Ready(None);
+        ei.poll(cx)
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        let mut this = self.project();
+        let ei = this.ei.as_mut().as_pin_mut()?;
+
+        if ei.event().is_none() {
+            this.ei.set(None);
+            return None;
         }
 
-        let poll = Pin::new(&this.ei).poll_next(cx);
-
-        if let Poll::Ready(None) = poll {
-            this.ended.set(true);
-        }
-
-        poll
+        this.ei.as_pin_mut().and_then(|ei| ei.event())
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.ei.size_hint()
+        self.ei
+            .as_ref()
+            .map(|ei| ei.size_hint())
+            .unwrap_or((0, Some(0)))
     }
 }

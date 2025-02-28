@@ -4,58 +4,65 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::{EventIterator, LendAs};
+use crate::EventIterator;
 
 pin_project_lite::pin_project! {
-    /// Event iterator that maps the events with a type implementing [`LendAs`]
+    /// Event iterator that maps the events with a closure to a reference
     ///
-    /// This `struct` is created by the [`EventIterator::map()`] method.
+    /// This `struct` is created by the [`EventIterator::map_ref()`] method.
     /// See its documentation for more.
-    pub struct Map<I, L> {
+    pub struct MapRef<I, F, E> {
         #[pin]
         ei: I,
-        lend_as : L,
+        f: F,
+        event: Option<E>,
     }
 }
 
-impl<I, L> Map<I, L> {
-    pub(crate) fn new(ei: I, lend_as: L) -> Self {
-        Self { ei, lend_as }
+impl<I, F, E> MapRef<I, F, E> {
+    pub(crate) fn new(ei: I, f: F) -> Self {
+        let event = None;
+
+        Self { ei, f, event }
     }
 }
 
-impl<I, L> fmt::Debug for Map<I, L>
+impl<I, F, E> fmt::Debug for MapRef<I, F, E>
 where
     I: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Map")
+        f.debug_struct("MapRef")
             .field("ei", &self.ei)
             .finish_non_exhaustive()
     }
 }
 
-impl<I, L> EventIterator for Map<I, L>
+impl<E, I, F> EventIterator for MapRef<I, F, E>
 where
     I: EventIterator,
-    L: for<'me> LendAs<From<'me> = I::Event<'me>> + Copy,
-    for<'a> L::Into<'a>: Copy,
+    F: for<'me> FnMut(I::Event<'me>) -> E,
 {
     type Event<'me>
-        = L::Into<'me>
+        = &'me E
     where
         Self: 'me;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let mut this = self.project();
+        let poll = this.ei.as_mut().poll(cx);
 
-        this.ei.as_mut().poll(cx)
+        if poll.is_ready() {
+            (*this.event) = this.ei.event().map(this.f);
+        }
+
+        poll
     }
 
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
 
-        Some(this.lend_as.lend_as(this.ei.event()?))
+        this.event.as_ref()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -42,49 +42,54 @@
     variant_size_differences
 )]
 
-mod as_event_iter;
+//mod as_event_iter;
 mod empty;
 mod enumerate;
 mod event_iter;
 mod filter;
-mod filter_map;
-mod from_fn;
-mod from_iter;
+mod filter_map_ref;
+//mod from_fn;
+mod consts;
+mod from_iter_ref;
 mod fuse;
 mod inspect;
 mod map;
+mod map_ref;
 mod next;
-mod once;
-mod once_with;
+//mod once;
+//mod once_with;
 mod pending;
-mod poll_fn;
-mod ready;
-mod repeat;
-mod repeat_with;
+//mod poll_fn;
+//mod ready;
+//mod repeat;
+//mod repeat_with;
+mod lend_as;
 mod take;
 mod take_while;
 mod tear;
 
 pub use self::{
-    as_event_iter::{AsEventIter, AsEventIterator},
+    //    as_event_iter::{AsEventIter, AsEventIterator},
     empty::{empty, Empty},
     enumerate::Enumerate,
     event_iter::EventIterator,
     filter::Filter,
-    filter_map::FilterMap,
-    from_fn::{from_fn, FromFn},
-    from_iter::{from_iter, FromIter},
+    filter_map_ref::FilterMapRef,
+    //from_fn::{from_fn, FromFn},
+    from_iter_ref::{from_iter_ref, FromIterRef},
     fuse::Fuse,
     inspect::Inspect,
+    lend_as::LendAs,
     map::Map,
+    map_ref::MapRef,
     next::Next,
-    once::{once, Once},
-    once_with::{once_with, OnceWith},
+    //    once::{once, Once},
+    //    once_with::{once_with, OnceWith},
     pending::{pending, Pending},
-    poll_fn::{poll_fn, PollFn},
-    ready::{ready, Ready},
-    repeat::{repeat, Repeat},
-    repeat_with::{repeat_with, RepeatWith},
+    //    poll_fn::{poll_fn, PollFn},
+    //    ready::{ready, Ready},
+    //    repeat::{repeat, Repeat},
+    //    repeat_with::{repeat_with, RepeatWith},
     take::Take,
     take_while::TakeWhile,
     tear::Tear,

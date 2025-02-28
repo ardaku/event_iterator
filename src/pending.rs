@@ -5,28 +5,41 @@ use core::{
     task::{Context, Poll},
 };
 
-use crate::EventIterator;
+use crate::{consts::EVENT_BEFORE_POLL, EventIterator};
 
-/// Event iterator that never produces an event and never finishes
+/// [Torn](crate::Tear) event iterator that never produces an event and never
+/// finishes
 ///
 /// This event iterator is created by the [`pending()`] function.  See its
 /// documentation for more.
-pub struct Pending<E>(PhantomData<E>);
+pub struct Pending<E>(PhantomData<E>)
+where
+    E: Copy;
 
-impl<E> fmt::Debug for Pending<E> {
+impl<E> fmt::Debug for Pending<E>
+where
+    E: Copy,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Pending").field(&format_args!("_")).finish()
     }
 }
 
-impl<E> EventIterator for Pending<E> {
-    type Event<'me> = E where Self: 'me;
+impl<E> EventIterator for Pending<E>
+where
+    E: Copy,
+{
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<()> {
         Poll::Pending
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        panic!("{EVENT_BEFORE_POLL}");
     }
 }
 
@@ -39,6 +52,9 @@ impl<E> EventIterator for Pending<E> {
 /// ```rust
 #[doc = include_str!("../examples/pending.rs")]
 /// ```
-pub fn pending<E>() -> Pending<E> {
+pub fn pending<E>() -> Pending<E>
+where
+    E: Copy,
+{
     Pending(PhantomData::<E>)
 }

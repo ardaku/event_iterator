@@ -1,5 +1,4 @@
 use core::{
-    cell::Cell,
     fmt,
     pin::Pin,
     task::{Context, Poll},
@@ -7,19 +6,20 @@ use core::{
 
 use crate::EventIterator;
 
-/// Event iterator that calls a closure with a reference to each event
-///
-/// This `struct` is created by the [`EventIterator::map()`] method.  See its
-/// documentation for more.
-pub struct Inspect<I, F> {
-    ei: I,
-    f: Cell<Option<F>>,
+pin_project_lite::pin_project! {
+    /// Event iterator that calls a closure with a reference to each event
+    ///
+    /// This `struct` is created by the [`EventIterator::inspect()`] method.
+    /// See its documentation for more.
+    pub struct Inspect<I, F> {
+        #[pin]
+        ei: I,
+        f: F,
+    }
 }
 
 impl<I, F> Inspect<I, F> {
     pub(crate) fn new(ei: I, f: F) -> Self {
-        let f = Cell::new(Some(f));
-
         Self { ei, f }
     }
 }
@@ -37,27 +37,32 @@ where
 
 impl<I, F> EventIterator for Inspect<I, F>
 where
-    I: EventIterator + Unpin,
-    F: for<'me> FnMut(&I::Event<'me>) + 'static + Unpin,
+    I: EventIterator,
+    F: for<'me> FnMut(I::Event<'me>),
 {
-    type Event<'me> = I::Event<'me> where I: 'me;
+    type Event<'me>
+        = I::Event<'me>
+    where
+        I: 'me,
+        F: 'me;
 
-    fn poll_next<'a>(
-        self: Pin<&'a Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Event<'a>>> {
-        let this = self.get_ref();
-        let event = Pin::new(&this.ei).poll_next(cx);
-        let Poll::Ready(Some(event)) = event else {
-            return event;
-        };
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let mut this = self.project();
+        let poll = this.ei.as_mut().poll(cx);
 
-        if let Some(mut f) = this.f.take() {
-            f(&event);
-            this.f.set(Some(f));
+        if poll.is_ready() {
+            if let Some(event) = this.ei.event() {
+                (*this.f)(event);
+            }
         }
 
-        Poll::Ready(Some(event))
+        poll
+    }
+
+    fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
+        let this = self.project();
+
+        this.ei.event()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -7,45 +7,49 @@ use core::{
 use crate::EventIterator;
 
 pin_project_lite::pin_project! {
-    /// Event iterator that filters the events of an event iterator with a
-    /// predicate
+    /// Event iterator that uses a closure to both filter and map a reference to
+    /// events
     ///
-    /// This `struct` is created by the [`EventIterator::filter()`] method.  See
-    /// its documentation for more.
-    pub struct Filter<I, P> {
+    /// This `struct` is created by the [`EventIterator::filter_map_ref()`]
+    /// method.  See its documentation for more.
+    pub struct FilterMapRef<I, F, E> {
         #[pin]
         ei: I,
-        p: P,
+        f: F,
+        event: Option<E>,
     }
 }
 
-impl<I, P> Filter<I, P> {
-    pub(crate) fn new(ei: I, p: P) -> Self {
-        Self { ei, p }
+impl<I, F, E> FilterMapRef<I, F, E> {
+    pub(crate) fn new(ei: I, f: F) -> Self {
+        let event = None;
+
+        Self { ei, f, event }
     }
 }
 
-impl<I, P> fmt::Debug for Filter<I, P>
+impl<I, F, E> fmt::Debug for FilterMapRef<I, F, E>
 where
     I: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Filter")
+        f.debug_struct("FilterMapRef")
             .field("ei", &self.ei)
             .finish_non_exhaustive()
     }
 }
 
-impl<I, P> EventIterator for Filter<I, P>
+impl<I, F, E> EventIterator for FilterMapRef<I, F, E>
 where
     I: EventIterator,
-    P: for<'me> FnMut(I::Event<'me>) -> bool,
+    F: for<'me> FnMut(I::Event<'me>) -> Option<E>,
 {
     type Event<'me>
-        = I::Event<'me>
+        = &'me E
     where
         I: 'me,
-        P: 'me;
+        E: 'me,
+        F: 'me;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let mut this = self.project();
@@ -55,10 +59,13 @@ where
                 break Poll::Pending;
             };
             let Some(event) = this.ei.as_mut().event() else {
+                (*this.event) = None;
                 break Poll::Ready(());
             };
 
-            if (this.p)(event) {
+            (*this.event) = (this.f)(event);
+
+            if this.event.is_some() {
                 break Poll::Ready(());
             }
         }
@@ -67,7 +74,7 @@ where
     fn event<'a>(self: Pin<&'a mut Self>) -> Option<Self::Event<'a>> {
         let this = self.project();
 
-        this.ei.event()
+        this.event.as_ref()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
