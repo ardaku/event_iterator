@@ -27,7 +27,10 @@ where
 }
 
 impl<E> EventIterator for Once<E> {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

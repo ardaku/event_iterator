@@ -23,7 +23,10 @@ impl<F, E> EventIterator for Ready<F>
 where
     F: FnMut() -> E + Unpin,
 {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

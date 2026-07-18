@@ -25,7 +25,10 @@ impl<E> EventIterator for Repeat<E>
 where
     E: Clone,
 {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

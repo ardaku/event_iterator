@@ -32,7 +32,10 @@ impl<I> EventIterator for FromIter<I>
 where
     I: Iterator,
 {
-    type Event<'me> = <I as Iterator>::Item where I: 'me;
+    type Event<'me>
+        = <I as Iterator>::Item
+    where
+        I: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

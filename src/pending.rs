@@ -20,7 +20,10 @@ impl<E> fmt::Debug for Pending<E> {
 }
 
 impl<E> EventIterator for Pending<E> {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

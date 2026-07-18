@@ -28,7 +28,10 @@ impl<E> fmt::Debug for AsEventIter<'_, E> {
 }
 
 impl<E> EventIterator for AsEventIter<'_, E> {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next(
         self: Pin<&Self>,

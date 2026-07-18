@@ -23,7 +23,10 @@ impl<F, T> EventIterator for PollFn<F>
 where
     F: FnMut(&mut Context<'_>) -> Poll<Option<T>> + Unpin,
 {
-    type Event<'me> = T where Self: 'me;
+    type Event<'me>
+        = T
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

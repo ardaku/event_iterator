@@ -40,7 +40,10 @@ where
     I: EventIterator + Unpin,
     F: for<'me> FnMut(&I::Event<'me>) + 'static + Unpin,
 {
-    type Event<'me> = I::Event<'me> where I: 'me;
+    type Event<'me>
+        = I::Event<'me>
+    where
+        I: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

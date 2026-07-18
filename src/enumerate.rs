@@ -40,7 +40,10 @@ impl<I> EventIterator for Enumerate<I>
 where
     I: EventIterator + Unpin,
 {
-    type Event<'me> = (usize, I::Event<'me>) where I: 'me;
+    type Event<'me>
+        = (usize, I::Event<'me>)
+    where
+        I: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

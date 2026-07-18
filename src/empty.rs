@@ -20,7 +20,10 @@ impl<E> fmt::Debug for Empty<E> {
 }
 
 impl<E> EventIterator for Empty<E> {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

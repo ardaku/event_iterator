@@ -28,25 +28,34 @@ where
     F: Future<Output = Option<E>> + Unpin,
     G: FnMut() -> F + Unpin,
 {
-    type Event<'me> = E where Self: 'me;
+    type Event<'me>
+        = E
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Event<'a>>> {
         for _ in 0..2 {
-            if let Some(mut future) = self.future.take() {
-                let Poll::Ready(output) = Pin::new(&mut future).poll(cx) else {
-                    self.future.set(Some(future));
-                    return Poll::Pending;
-                };
+            match self.future.take() {
+                Some(mut future) => {
+                    let Poll::Ready(output) = Pin::new(&mut future).poll(cx)
+                    else {
+                        self.future.set(Some(future));
+                        return Poll::Pending;
+                    };
 
-                return Poll::Ready(output);
-            } else {
-                self.generator.set(self.generator.take().map(|mut gen| {
-                    self.future.set(Some(gen()));
-                    gen
-                }));
+                    return Poll::Ready(output);
+                }
+                _ => {
+                    self.generator.set(self.generator.take().map(
+                        |mut r#gen| {
+                            self.future.set(Some(r#gen()));
+                            r#gen
+                        },
+                    ));
+                }
             }
         }
 
@@ -61,13 +70,13 @@ where
 /// ```rust
 #[doc = include_str!("../examples/from_fn.rs")]
 /// ```
-pub fn from_fn<E, F, G>(gen: G) -> FromFn<F, G>
+pub fn from_fn<E, F, G>(r#gen: G) -> FromFn<F, G>
 where
     F: Future<Output = Option<E>>,
     G: FnMut() -> F,
 {
     FromFn {
-        generator: Cell::new(Some(gen)),
+        generator: Cell::new(Some(r#gen)),
         future: Cell::new(None),
     }
 }

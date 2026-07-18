@@ -367,8 +367,10 @@ where
     T: Deref + ?Sized,
     T::Target: EventIterator + Unpin,
 {
-    type Event<'me> = <<T as Deref>::Target as EventIterator>::Event<'me>
-        where Self: 'me;
+    type Event<'me>
+        = <<T as Deref>::Target as EventIterator>::Event<'me>
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,

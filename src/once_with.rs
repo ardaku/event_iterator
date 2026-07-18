@@ -31,7 +31,10 @@ impl<F> EventIterator for OnceWith<F>
 where
     F: Future + Unpin,
 {
-    type Event<'me> = F::Output where Self: 'me;
+    type Event<'me>
+        = F::Output
+    where
+        Self: 'me;
 
     fn poll_next<'a>(
         self: Pin<&'a Self>,
