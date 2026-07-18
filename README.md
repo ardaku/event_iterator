@@ -6,13 +6,13 @@ A modified `AsyncIterator` or `Stream` using GATs to enable lending.
 
 ## MSRV
 
-The current MSRV is Rust 1.70.
+The current MSRV is Rust 1.91.
 
 MSRV is updated according to the [Ardaku MSRV guidelines].
 
 ## License
 
-Copyright © 2024 The Event Iterator Contributors.
+Copyright © 2024-2026 The Event Iterator Contributors.
 
 Licensed under any of
  - Apache License, Version 2.0, ([LICENSE\_APACHE] or
